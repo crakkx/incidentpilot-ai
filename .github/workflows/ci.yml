@@ -9,6 +9,9 @@ jobs:
     name: Run tests
     runs-on: ubuntu-latest
 
+    env:
+      DATABASE_URL: sqlite:///./test.db
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

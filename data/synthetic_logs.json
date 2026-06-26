@@ -1,0 +1,335 @@
+{
+  "service_name": "checkout-api",
+  "logs": [
+    {
+      "timestamp": "2026-06-26T19:03:46.757313",
+      "level": "INFO",
+      "message": "GET /health completed in 4ms",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-000",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T19:03:16.757313",
+      "level": "INFO",
+      "message": "POST /checkout started",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-001",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T19:02:46.757313",
+      "level": "INFO",
+      "message": "GET /health completed in 4ms",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-002",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T19:02:16.757313",
+      "level": "ERROR",
+      "message": "Payment authorization failed with upstream timeout",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-003",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T19:01:46.757313",
+      "level": "WARN",
+      "message": "Database connection pool usage above 80 percent",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-004",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T19:01:16.757313",
+      "level": "ERROR",
+      "message": "Payment authorization failed with upstream timeout",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-005",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T19:00:46.757313",
+      "level": "ERROR",
+      "message": "Payment authorization failed with upstream timeout",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-006",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T19:00:16.757313",
+      "level": "INFO",
+      "message": "Inventory reservation completed",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-007",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:59:46.757313",
+      "level": "ERROR",
+      "message": "Payment authorization failed with upstream timeout",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-008",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:59:16.757313",
+      "level": "INFO",
+      "message": "Inventory reservation completed",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-009",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:58:46.757313",
+      "level": "INFO",
+      "message": "POST /checkout started",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-010",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:58:16.757313",
+      "level": "ERROR",
+      "message": "Checkout confirmation failed with HTTP 504",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-011",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:57:46.757313",
+      "level": "WARN",
+      "message": "Database connection pool usage above 80 percent",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-012",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:57:16.757313",
+      "level": "ERROR",
+      "message": "Payment authorization failed with upstream timeout",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-013",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:56:46.757313",
+      "level": "INFO",
+      "message": "GET /health completed in 4ms",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-014",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:56:16.757313",
+      "level": "WARN",
+      "message": "Payment provider response time exceeded 1500ms",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-015",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:55:46.757313",
+      "level": "ERROR",
+      "message": "Checkout confirmation failed with HTTP 504",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-016",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:55:16.757313",
+      "level": "WARN",
+      "message": "Payment provider response time exceeded 1500ms",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-017",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:54:46.757313",
+      "level": "INFO",
+      "message": "GET /health completed in 4ms",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-018",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:54:16.757313",
+      "level": "INFO",
+      "message": "Inventory reservation completed",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-019",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:53:46.757313",
+      "level": "INFO",
+      "message": "Inventory reservation completed",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-020",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:53:16.757313",
+      "level": "INFO",
+      "message": "POST /checkout started",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-021",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:52:46.757313",
+      "level": "WARN",
+      "message": "Payment provider response time exceeded 1500ms",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-022",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:52:16.757313",
+      "level": "INFO",
+      "message": "POST /checkout started",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-023",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:51:46.757313",
+      "level": "INFO",
+      "message": "POST /checkout started",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-024",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:51:16.757313",
+      "level": "INFO",
+      "message": "POST /checkout started",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-025",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:50:46.757313",
+      "level": "ERROR",
+      "message": "Checkout confirmation failed with HTTP 504",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-026",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:50:16.757313",
+      "level": "INFO",
+      "message": "Inventory reservation completed",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-027",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:49:46.757313",
+      "level": "INFO",
+      "message": "POST /checkout started",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-028",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    },
+    {
+      "timestamp": "2026-06-26T18:49:16.757313",
+      "level": "INFO",
+      "message": "Inventory reservation completed",
+      "source": "synthetic-generator",
+      "context": {
+        "request_id": "synthetic-req-029",
+        "environment": "production",
+        "endpoint": "/checkout"
+      }
+    }
+  ]
+}

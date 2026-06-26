@@ -4,3 +4,6 @@ pytest
 httpx
 psycopg[binary]
 redis
+sqlalchemy
+python-multipart
+pydantic

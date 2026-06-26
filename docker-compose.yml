@@ -2,10 +2,12 @@ services:
   api:
     build: .
     container_name: incidentpilot-api
+    working_dir: /app
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql://incidentpilot:incidentpilot@postgres:5432/incidentpilot
+      PYTHONPATH: /app
+      DATABASE_URL: postgresql+psycopg://incidentpilot:incidentpilot@postgres:5432/incidentpilot
       REDIS_URL: redis://redis:6379/0
     depends_on:
       postgres:

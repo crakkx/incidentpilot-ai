@@ -16,6 +16,31 @@ Day 1 foundation complete:
 - GitHub Actions CI
 - Basic test coverage
 
+## Day 2 Endpoints
+
+### `POST /incidents`
+
+Creates a new incident.
+
+### `GET /incidents`
+
+Lists incidents.
+
+### `POST /documents/upload`
+
+Uploads a UTF-8 text document such as a runbook.
+
+### `POST /logs/ingest`
+
+Ingests service logs for later analysis.
+
+- SQLAlchemy database models
+- Incident, service, log, deployment, document, and analysis run tables
+- Seed script
+- Synthetic log generator
+- Incident, document upload, and log ingestion APIs
+
+
 ## Tech Stack
 
 - Python
