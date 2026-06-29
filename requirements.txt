@@ -7,3 +7,4 @@ redis
 sqlalchemy
 python-multipart
 pydantic
+pgvector

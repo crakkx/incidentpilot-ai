@@ -35,6 +35,20 @@ class DocumentRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class DocumentUploadResponse(BaseModel):
+    id: str
+    title: str
+    filename: str | None
+    content_type: str | None
+    created_at: datetime
+    chunk_count: int
+
+
+class IndexDocumentsResponse(BaseModel):
+    documents_indexed: int
+    chunks_created: int
+
+
 class LogCreate(BaseModel):
     timestamp: datetime | None = None
     level: str = "INFO"
@@ -53,3 +67,22 @@ class LogIngestResponse(BaseModel):
     ingested_count: int
     service_id: str
     service_name: str
+
+
+class RetrieveRequest(BaseModel):
+    query: str = Field(..., min_length=2)
+    top_k: int = Field(3, ge=1, le=10)
+
+
+class RetrievalResult(BaseModel):
+    document_id: str
+    document_title: str
+    chunk_id: str
+    chunk_index: int
+    content: str
+    score: float
+
+
+class RetrieveResponse(BaseModel):
+    query: str
+    results: list[RetrievalResult]

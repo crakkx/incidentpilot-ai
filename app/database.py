@@ -1,5 +1,6 @@
 import os
-from sqlalchemy import create_engine
+
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 
@@ -13,6 +14,7 @@ if DATABASE_URL.startswith("sqlite"):
 engine = create_engine(
     DATABASE_URL,
     connect_args=connect_args,
+    pool_pre_ping=True,
 )
 
 SessionLocal = sessionmaker(
@@ -26,6 +28,10 @@ Base = declarative_base()
 
 def init_db():
     import app.models  # noqa: F401
+
+    if engine.dialect.name == "postgresql":
+        with engine.begin() as connection:
+            connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
 
     Base.metadata.create_all(bind=engine)
 

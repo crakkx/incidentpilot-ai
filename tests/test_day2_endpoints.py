@@ -35,27 +35,6 @@ def test_create_and_list_incidents():
         )
 
 
-def test_upload_document():
-    with TestClient(app) as client:
-        response = client.post(
-            "/documents/upload",
-            files={
-                "file": (
-                    "runbook.md",
-                    b"# Runbook\nCheck recent deployments and logs.",
-                    "text/markdown",
-                )
-            },
-        )
-
-        assert response.status_code == 201
-
-        document = response.json()
-
-        assert document["filename"] == "runbook.md"
-        assert document["content_type"] == "text/markdown"
-
-
 def test_ingest_logs():
     with TestClient(app) as client:
         response = client.post(

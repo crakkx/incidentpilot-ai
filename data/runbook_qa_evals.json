@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "question": "What should I check if checkout latency increases?",
+    "expected_terms": ["checkout-api", "payment provider", "database connection pool"]
+  },
+  {
+    "id": 2,
+    "question": "What are common causes of payment authorization timeouts?",
+    "expected_terms": ["payment provider", "retry queue", "network timeout"]
+  },
+  {
+    "id": 3,
+    "question": "When should I roll back a deployment?",
+    "expected_terms": ["deployment", "rollback", "error rate"]
+  },
+  {
+    "id": 4,
+    "question": "What should I inspect when database connections are exhausted?",
+    "expected_terms": ["connection pool", "slow queries", "connection leak"]
+  },
+  {
+    "id": 5,
+    "question": "What can cause search API latency?",
+    "expected_terms": ["cache", "search backend", "ranking"]
+  },
+  {
+    "id": 6,
+    "question": "What logs should I search when checkout is failing?",
+    "expected_terms": ["checkout-api", "WARN", "ERROR"]
+  },
+  {
+    "id": 7,
+    "question": "How do I investigate a payment provider timeout?",
+    "expected_terms": ["provider status", "payments-api", "504"]
+  },
+  {
+    "id": 8,
+    "question": "What evidence is useful before rollback?",
+    "expected_terms": ["commit SHA", "deployment timestamp", "error rate"]
+  },
+  {
+    "id": 9,
+    "question": "What should I do if search backend is overloaded?",
+    "expected_terms": ["degraded mode", "cache TTL", "search backend"]
+  },
+  {
+    "id": 10,
+    "question": "What can cause database query latency after a deploy?",
+    "expected_terms": ["new deployment", "slow query", "inefficient query"]
+  }
+]

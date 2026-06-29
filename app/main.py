@@ -5,13 +5,18 @@ from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.database import get_db, init_db
-from app.models import Document, Incident, LogEntry, Service
+from app.document_indexer import index_document
+from app.embeddings import embed_text
+from app.models import Document, DocumentChunk, Incident, LogEntry, Service
 from app.schemas import (
-    DocumentRead,
+    DocumentUploadResponse,
     IncidentCreate,
     IncidentRead,
+    IndexDocumentsResponse,
     LogIngestRequest,
     LogIngestResponse,
+    RetrieveRequest,
+    RetrieveResponse,
 )
 
 
@@ -24,7 +29,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="IncidentPilot AI",
     description="AI-powered incident analysis assistant.",
-    version="0.2.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
@@ -66,7 +71,7 @@ def health():
     return {
         "status": "ok",
         "service": "incidentpilot-ai",
-        "version": "0.2.0",
+        "version": "0.3.0",
     }
 
 
@@ -108,7 +113,7 @@ def list_incidents(
     return query.all()
 
 
-@app.post("/documents/upload", response_model=DocumentRead, status_code=201)
+@app.post("/documents/upload", response_model=DocumentUploadResponse, status_code=201)
 async def upload_document(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -131,10 +136,43 @@ async def upload_document(
     )
 
     db.add(document)
+    db.flush()
+
+    chunk_count = index_document(db, document)
+
     db.commit()
     db.refresh(document)
 
-    return document
+    return {
+        "id": document.id,
+        "title": document.title,
+        "filename": document.filename,
+        "content_type": document.content_type,
+        "created_at": document.created_at,
+        "chunk_count": chunk_count,
+    }
+
+
+@app.post("/documents/index", response_model=IndexDocumentsResponse)
+def index_documents(db: Session = Depends(get_db)):
+    documents = db.query(Document).all()
+
+    documents_indexed = 0
+    chunks_created = 0
+
+    for document in documents:
+        created_for_document = index_document(db, document)
+
+        if created_for_document > 0:
+            documents_indexed += 1
+            chunks_created += created_for_document
+
+    db.commit()
+
+    return {
+        "documents_indexed": documents_indexed,
+        "chunks_created": chunks_created,
+    }
 
 
 @app.post("/logs/ingest", response_model=LogIngestResponse, status_code=201)
@@ -173,3 +211,57 @@ def ingest_logs(
         service_id=service.id,
         service_name=service.name,
     )
+
+
+@app.post("/retrieve", response_model=RetrieveResponse)
+def retrieve(
+    payload: RetrieveRequest,
+    db: Session = Depends(get_db),
+):
+    query = payload.query.strip()
+
+    if not query:
+        raise HTTPException(status_code=400, detail="query cannot be empty")
+
+    query_embedding = embed_text(query)
+
+    if not any(query_embedding):
+        raise HTTPException(
+            status_code=400,
+            detail="query must contain searchable words",
+        )
+
+    distance = DocumentChunk.embedding.cosine_distance(query_embedding)
+
+    rows = (
+        db.query(
+            DocumentChunk,
+            Document.title.label("document_title"),
+            distance.label("distance"),
+        )
+        .join(Document, Document.id == DocumentChunk.document_id)
+        .order_by(distance)
+        .limit(payload.top_k)
+        .all()
+    )
+
+    results = []
+
+    for chunk, document_title, chunk_distance in rows:
+        score = 1.0 - float(chunk_distance)
+
+        results.append(
+            {
+                "document_id": chunk.document_id,
+                "document_title": document_title,
+                "chunk_id": chunk.id,
+                "chunk_index": chunk.chunk_index,
+                "content": chunk.content,
+                "score": score,
+            }
+        )
+
+    return {
+        "query": query,
+        "results": results,
+    }

@@ -1,10 +1,12 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, ForeignKey, JSON, String, Text
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import relationship
 
 from app.database import Base
+from app.embeddings import EMBEDDING_DIMENSIONS
 
 
 def new_id():
@@ -96,6 +98,28 @@ class Document(Base):
     content = Column(Text, nullable=False)
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    chunks = relationship(
+        "DocumentChunk",
+        back_populates="document",
+        cascade="all, delete-orphan",
+    )
+
+
+class DocumentChunk(Base):
+    __tablename__ = "document_chunks"
+
+    id = Column(String(36), primary_key=True, default=new_id)
+
+    document_id = Column(String(36), ForeignKey("documents.id"), nullable=False)
+
+    chunk_index = Column(Integer, nullable=False)
+    content = Column(Text, nullable=False)
+    embedding = Column(Vector(EMBEDDING_DIMENSIONS), nullable=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    document = relationship("Document", back_populates="chunks")
 
 
 class AnalysisRun(Base):

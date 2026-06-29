@@ -10,7 +10,28 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      DATABASE_URL: sqlite:///./test.db
+      DATABASE_URL: postgresql+psycopg://incidentpilot:incidentpilot@localhost:5432/incidentpilot
+      REDIS_URL: redis://localhost:6379/0
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: incidentpilot
+          POSTGRES_PASSWORD: incidentpilot
+          POSTGRES_DB: incidentpilot
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U incidentpilot -d incidentpilot"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
 
     steps:
       - name: Check out repository
@@ -28,4 +49,4 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run tests
-        run: python -m pytest -q
+        run: PYTHONPATH=. python -m pytest -q

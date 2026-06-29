@@ -2,11 +2,9 @@ services:
   api:
     build: .
     container_name: incidentpilot-api
-    working_dir: /app
     ports:
       - "8000:8000"
     environment:
-      PYTHONPATH: /app
       DATABASE_URL: postgresql+psycopg://incidentpilot:incidentpilot@postgres:5432/incidentpilot
       REDIS_URL: redis://redis:6379/0
     depends_on:
@@ -19,7 +17,7 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   postgres:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:pg17
     container_name: incidentpilot-postgres
     environment:
       POSTGRES_USER: incidentpilot

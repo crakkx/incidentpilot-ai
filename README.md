@@ -41,6 +41,41 @@ Ingests service logs for later analysis.
 - Incident, document upload, and log ingestion APIs
 
 
+## Day 3: Retrieval Foundation
+
+Day 3 adds the first retrieval system.
+
+### New pieces
+
+- Basic document chunking
+- Local hash-based embeddings
+- pgvector support in Postgres
+- `document_chunks` table
+- Retrieval endpoint
+- Synthetic runbook Q&A evals
+- Architecture diagram
+
+### New endpoints
+
+#### `POST /documents/index`
+
+Indexes existing documents by splitting them into chunks and storing embeddings.
+
+#### `POST /retrieve`
+
+Retrieves relevant document chunks for a user query.
+
+Example:
+
+```bash
+curl -X POST http://localhost:8000/retrieve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "What should I check if checkout latency increases?",
+    "top_k": 3
+  }'
+
+
 ## Tech Stack
 
 - Python
