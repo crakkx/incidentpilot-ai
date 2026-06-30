@@ -1,19 +1,12 @@
-import os
-
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
+from app.core.config import settings
+from app.db.base import Base, import_models
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./incidentpilot_local.db")
-
-connect_args = {}
-
-if DATABASE_URL.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
 
 engine = create_engine(
-    DATABASE_URL,
-    connect_args=connect_args,
+    settings.database_url,
     pool_pre_ping=True,
 )
 
@@ -23,11 +16,9 @@ SessionLocal = sessionmaker(
     bind=engine,
 )
 
-Base = declarative_base()
 
-
-def init_db():
-    import app.models  # noqa: F401
+def init_db() -> None:
+    import_models()
 
     if engine.dialect.name == "postgresql":
         with engine.begin() as connection:

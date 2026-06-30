@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta
 
-from app.database import Base, SessionLocal, engine
+from app.db.base import Base
+from app.db.session import SessionLocal, engine, init_db
 from app.models import Deployment, Document, Incident, LogEntry, Service
 
 
 def main():
-    Base.metadata.create_all(bind=engine)
+    init_db()
 
     db = SessionLocal()
 

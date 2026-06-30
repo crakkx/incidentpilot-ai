@@ -5,8 +5,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(PROJECT_ROOT))
 
 from app import models  # noqa: E402
-from app.database import SessionLocal, init_db  # noqa: E402
-from app.document_indexer import index_document  # noqa: E402
+from app.db.session import SessionLocal, init_db  # noqa: E402
+from app.services.retrieval_service import index_document  # noqa: E402
 
 
 RUNBOOKS = [
