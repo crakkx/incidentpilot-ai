@@ -25,6 +25,7 @@ def ingest_logs(db: Session, payload: LogIngestRequest):
         create_log_entry(
             db=db,
             service_id=service.id,
+            service_name=service.name,
             incident_id=payload.incident_id,
             timestamp=log_item.timestamp or datetime.utcnow(),
             level=log_item.level.upper(),

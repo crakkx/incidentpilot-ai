@@ -1,8 +1,7 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
-from app.db.base import Base, import_models
 
 
 engine = create_engine(
@@ -18,13 +17,13 @@ SessionLocal = sessionmaker(
 
 
 def init_db() -> None:
-    import_models()
+    """
+    Database schema is now managed by Alembic migrations.
 
-    if engine.dialect.name == "postgresql":
-        with engine.begin() as connection:
-            connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-
-    Base.metadata.create_all(bind=engine)
+    This function is intentionally kept as a no-op for backwards compatibility
+    with old scripts that may still import it.
+    """
+    return None
 
 
 def get_db():

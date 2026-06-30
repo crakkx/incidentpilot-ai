@@ -5,6 +5,7 @@ httpx
 psycopg[binary]
 redis
 sqlalchemy
+alembic
 python-multipart
 pydantic
 pydantic-settings

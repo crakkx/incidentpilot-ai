@@ -9,6 +9,7 @@ from app.models import LogEntry
 def create_log_entry(
     db: Session,
     service_id: str,
+    service_name: str,
     incident_id: str | None,
     timestamp: datetime,
     level: str,
@@ -18,6 +19,7 @@ def create_log_entry(
 ) -> LogEntry:
     log_entry = LogEntry(
         service_id=service_id,
+        service_name=service_name,
         incident_id=incident_id,
         timestamp=timestamp,
         level=level,

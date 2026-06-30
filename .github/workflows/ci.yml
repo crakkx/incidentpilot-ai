@@ -15,7 +15,7 @@ jobs:
 
     services:
       postgres:
-        image: pgvector/pgvector:pg17
+        image: pgvector/pgvector:pg17-bookworm
         env:
           POSTGRES_USER: incidentpilot
           POSTGRES_PASSWORD: incidentpilot
@@ -47,6 +47,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Run migrations
+        run: PYTHONPATH=. alembic upgrade head
 
       - name: Run tests
         run: PYTHONPATH=. python -m pytest -q

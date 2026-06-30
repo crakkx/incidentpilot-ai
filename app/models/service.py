@@ -19,4 +19,3 @@ class Service(Base):
     incidents = relationship("Incident", back_populates="service")
     logs = relationship("LogEntry", back_populates="service")
     deployments = relationship("Deployment", back_populates="service")
-    metrics = relationship("Metric", back_populates="service")

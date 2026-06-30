@@ -1,3 +1,4 @@
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Document, DocumentChunk
@@ -16,8 +17,8 @@ def retrieve_document_chunks(
 
     distance = DocumentChunk.embedding.cosine_distance(query_embedding)
 
-    rows = (
-        db.query(
+    statement = (
+        select(
             DocumentChunk,
             Document.title.label("document_title"),
             distance.label("distance"),
@@ -25,8 +26,9 @@ def retrieve_document_chunks(
         .join(Document, Document.id == DocumentChunk.document_id)
         .order_by(distance)
         .limit(top_k)
-        .all()
     )
+
+    rows = db.execute(statement).all()
 
     results = []
 

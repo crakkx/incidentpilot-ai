@@ -6,13 +6,11 @@ from app.api.routes import analysis, documents, health, incidents, logs, retriev
 from app.core.config import settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
-from app.db.session import init_db
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     configure_logging()
-    init_db()
     yield
 
 

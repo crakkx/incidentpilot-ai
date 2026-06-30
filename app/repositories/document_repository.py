@@ -1,3 +1,4 @@
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import Document, DocumentChunk
@@ -24,15 +25,18 @@ def create_document(
 
 
 def list_documents(db: Session) -> list[Document]:
-    return db.query(Document).all()
+    statement = select(Document)
+    return list(db.execute(statement).scalars().all())
 
 
 def count_chunks_for_document(db: Session, document_id: str) -> int:
-    return (
-        db.query(DocumentChunk)
-        .filter(DocumentChunk.document_id == document_id)
-        .count()
+    statement = (
+        select(func.count())
+        .select_from(DocumentChunk)
+        .where(DocumentChunk.document_id == document_id)
     )
+
+    return int(db.execute(statement).scalar_one())
 
 
 def create_document_chunk(

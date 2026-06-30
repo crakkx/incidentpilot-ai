@@ -43,6 +43,7 @@ def create_incident(db: Session, payload: IncidentCreate):
         status=payload.status,
         description=payload.description,
         service_id=service.id if service else None,
+        service_name=service.name if service else None,
     )
 
     db.commit()

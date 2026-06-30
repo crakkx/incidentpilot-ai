@@ -13,10 +13,12 @@ class LogEntry(Base):
     id = Column(String(36), primary_key=True, default=new_id)
 
     service_id = Column(String(36), ForeignKey("services.id"), nullable=False)
+    service_name = Column(String(120), nullable=False)
+
     incident_id = Column(String(36), ForeignKey("incidents.id"), nullable=True)
 
-    timestamp = Column(DateTime, default=datetime.utcnow, index=True, nullable=False)
-    level = Column(String(30), index=True, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    level = Column(String(30), nullable=False)
     message = Column(Text, nullable=False)
     source = Column(String(120), nullable=True)
     context = Column(JSON, nullable=True)

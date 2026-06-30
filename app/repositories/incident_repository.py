@@ -1,10 +1,12 @@
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Incident, Service
 
 
 def get_service_by_name(db: Session, name: str) -> Service | None:
-    return db.query(Service).filter(Service.name == name).one_or_none()
+    statement = select(Service).where(Service.name == name)
+    return db.execute(statement).scalar_one_or_none()
 
 
 def create_service(db: Session, name: str, description: str | None = None) -> Service:
@@ -26,6 +28,7 @@ def create_incident(
     status: str,
     description: str | None,
     service_id: str | None,
+    service_name: str | None,
 ) -> Incident:
     incident = Incident(
         title=title,
@@ -33,6 +36,7 @@ def create_incident(
         status=status,
         description=description,
         service_id=service_id,
+        service_name=service_name,
     )
 
     db.add(incident)
@@ -42,12 +46,12 @@ def create_incident(
 
 
 def list_incidents(db: Session, status: str | None = None) -> list[Incident]:
-    query = db.query(Incident).order_by(Incident.created_at.desc())
+    statement = select(Incident).order_by(Incident.created_at.desc())
 
     if status:
-        query = query.filter(Incident.status == status)
+        statement = statement.where(Incident.status == status)
 
-    return query.all()
+    return list(db.execute(statement).scalars().all())
 
 
 def get_incident(db: Session, incident_id: str) -> Incident | None:

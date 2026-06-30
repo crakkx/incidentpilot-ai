@@ -18,6 +18,8 @@ class IncidentRead(BaseModel):
     status: str
     description: str | None
     service_id: str | None
+    service_name: str | None
+    started_at: datetime
     created_at: datetime
     updated_at: datetime
 
