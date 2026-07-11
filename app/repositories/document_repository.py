@@ -1,4 +1,4 @@
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.models import Document, DocumentChunk
@@ -10,12 +10,18 @@ def create_document(
     filename: str | None,
     content_type: str | None,
     content: str,
+    service_name: str | None,
+    document_type: str,
+    severity: str | None,
 ) -> Document:
     document = Document(
         title=title,
         filename=filename,
         content_type=content_type,
         content=content,
+        service_name=service_name,
+        document_type=document_type,
+        severity=severity,
     )
 
     db.add(document)
@@ -56,3 +62,10 @@ def create_document_chunk(
     db.add(chunk)
 
     return chunk
+
+
+def delete_all_document_chunks(db: Session) -> int:
+    result = db.execute(delete(DocumentChunk))
+    db.flush()
+
+    return result.rowcount or 0

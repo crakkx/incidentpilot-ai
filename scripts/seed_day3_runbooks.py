@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.append(str(PROJECT_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT))
 
 from app import models  # noqa: E402
 from app.db.session import SessionLocal  # noqa: E402
@@ -13,7 +13,9 @@ RUNBOOKS = [
     {
         "title": "Checkout Latency Runbook",
         "filename": "checkout-latency-runbook.md",
-        "content_type": "text/markdown",
+        "service_name": "checkout-api",
+        "document_type": "runbook",
+        "severity": "high",
         "content": """
 # Checkout Latency Runbook
 
@@ -34,14 +36,15 @@ Common causes:
 
 Useful actions:
 - Roll back the latest checkout-api deployment if errors started after deploy.
-- Increase payment timeout only after confirming provider health.
 - Escalate to the commerce-platform team if checkout failures affect many users.
 """,
     },
     {
         "title": "Payment Timeout Runbook",
         "filename": "payment-timeout-runbook.md",
-        "content_type": "text/markdown",
+        "service_name": "payments-api",
+        "document_type": "runbook",
+        "severity": "high",
         "content": """
 # Payment Timeout Runbook
 
@@ -53,11 +56,13 @@ First checks:
 - Check retry queue depth.
 - Check fraud service latency.
 - Check whether failures are isolated to one provider.
+- Check recent payments-api deployments.
 
 Common causes:
 - External payment provider degradation.
 - Retry queue backlog.
 - Network timeout between payments-api and provider.
+- Database timeout after deployment.
 - Fraud scoring dependency latency.
 
 Useful actions:
@@ -70,7 +75,9 @@ Useful actions:
     {
         "title": "Database Connection Pool Runbook",
         "filename": "database-connection-pool-runbook.md",
-        "content_type": "text/markdown",
+        "service_name": "payments-api",
+        "document_type": "runbook",
+        "severity": "high",
         "content": """
 # Database Connection Pool Runbook
 
@@ -99,7 +106,9 @@ Useful actions:
     {
         "title": "Deployment Rollback Runbook",
         "filename": "deployment-rollback-runbook.md",
-        "content_type": "text/markdown",
+        "service_name": "payments-api",
+        "document_type": "runbook",
+        "severity": "medium",
         "content": """
 # Deployment Rollback Runbook
 
@@ -127,7 +136,9 @@ Useful evidence:
     {
         "title": "Search API Latency Runbook",
         "filename": "search-api-latency-runbook.md",
-        "content_type": "text/markdown",
+        "service_name": "search-api",
+        "document_type": "runbook",
+        "severity": "medium",
         "content": """
 # Search API Latency Runbook
 
@@ -173,13 +184,20 @@ def main():
                 document = models.Document(
                     title=runbook["title"],
                     filename=runbook["filename"],
-                    content_type=runbook["content_type"],
+                    content_type="text/markdown",
+                    service_name=runbook["service_name"],
+                    document_type=runbook["document_type"],
+                    severity=runbook["severity"],
                     content=runbook["content"].strip(),
                 )
 
                 db.add(document)
                 db.flush()
                 documents_created += 1
+            else:
+                document.service_name = runbook["service_name"]
+                document.document_type = runbook["document_type"]
+                document.severity = runbook["severity"]
 
             created_for_document = index_document(db, document)
             chunks_created += created_for_document

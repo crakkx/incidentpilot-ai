@@ -38,8 +38,8 @@ def run_evals() -> None:
         response = call_retrieve(question)
 
         combined_text = " ".join(
-            result["content"]
-            for result in response["results"]
+            chunk["content"]
+            for chunk in response["chunks"]
         ).lower()
 
         matched_terms = [

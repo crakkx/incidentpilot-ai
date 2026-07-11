@@ -9,6 +9,10 @@ services:
       DATABASE_URL: postgresql+psycopg://incidentpilot:incidentpilot@postgres:5432/incidentpilot
       TEST_DATABASE_URL: postgresql+psycopg://incidentpilot:incidentpilot@postgres:5432/incidentpilot_test
       REDIS_URL: redis://redis:6379/0
+
+      HF_HOME: /cache/huggingface
+      TORCH_HOME: /cache/torch
+      SENTENCE_TRANSFORMERS_HOME: /cache/sentence-transformers
     depends_on:
       postgres:
         condition: service_healthy
@@ -16,6 +20,9 @@ services:
         condition: service_started
     volumes:
       - .:/app
+      - hf_cache:/cache/huggingface
+      - torch_cache:/cache/torch
+      - sentence_transformers_cache:/cache/sentence-transformers
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   postgres:
@@ -46,3 +53,6 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  hf_cache:
+  torch_cache:
+  sentence_transformers_cache:

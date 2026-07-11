@@ -1,16 +1,15 @@
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from datetime import datetime, timedelta
+from sqlalchemy import func, select  # noqa: E402
 
-from sqlalchemy import func, select
-
-from app.db.session import SessionLocal
-from app.models import Deployment, Document, Incident, LogEntry, Metric, Service
-from app.services.retrieval_service import index_document
+from app.db.session import SessionLocal  # noqa: E402
+from app.models import Deployment, Document, Incident, LogEntry, Metric, Service  # noqa: E402
+from app.services.retrieval_service import index_document  # noqa: E402
 
 
 def get_or_create_service(
@@ -123,6 +122,9 @@ def main():
                     title="Checkout API Runbook",
                     filename="checkout-runbook.md",
                     content_type="text/markdown",
+                    service_name=checkout.name,
+                    document_type="runbook",
+                    severity="high",
                     content=(
                         "# Checkout API Runbook\n\n"
                         "If checkout latency increases, check payment gateway latency, "
@@ -134,10 +136,14 @@ def main():
                     title="Payment Timeout Guide",
                     filename="payment-timeout-guide.md",
                     content_type="text/markdown",
+                    service_name=payments.name,
+                    document_type="runbook",
+                    severity="high",
                     content=(
                         "# Payment Timeout Guide\n\n"
                         "Payment gateway timeouts often appear as HTTP 504 errors. "
-                        "Check provider status, retry queue depth, and payments-api logs."
+                        "Check provider status, retry queue depth, database timeouts, "
+                        "and payments-api logs after deployments."
                     ),
                 ),
             ]

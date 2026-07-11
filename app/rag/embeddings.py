@@ -1,65 +1,69 @@
-import hashlib
-import math
-import re
+import os
+from functools import lru_cache
+
+from sentence_transformers import SentenceTransformer
+
+from app.core.config import settings
 
 
-EMBEDDING_DIMENSIONS = 64
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
-_TOKEN_PATTERN = re.compile(r"[a-zA-Z0-9_-]+")
-
-_STOPWORDS = {
-    "a",
-    "an",
-    "and",
-    "are",
-    "as",
-    "at",
-    "be",
-    "by",
-    "for",
-    "from",
-    "how",
-    "i",
-    "if",
-    "in",
-    "is",
-    "it",
-    "of",
-    "on",
-    "or",
-    "the",
-    "to",
-    "what",
-    "when",
-    "with",
-}
+EMBEDDING_DIMENSIONS = settings.embedding_dimensions
 
 
-def tokenize(text: str) -> list[str]:
-    tokens = _TOKEN_PATTERN.findall(text.lower())
+@lru_cache(maxsize=1)
+def get_embedding_model() -> SentenceTransformer:
+    return SentenceTransformer(
+        settings.embedding_model_name,
+        device="cpu",
+    )
 
-    return [
-        token
-        for token in tokens
-        if token not in _STOPWORDS and len(token) > 1
-    ]
+
+def _validate_embedding(embedding: list[float]) -> list[float]:
+    if len(embedding) != EMBEDDING_DIMENSIONS:
+        raise ValueError(
+            f"Expected embedding dimension {EMBEDDING_DIMENSIONS}, "
+            f"got {len(embedding)}."
+        )
+
+    return embedding
 
 
 def embed_text(text: str) -> list[float]:
-    vector = [0.0] * EMBEDDING_DIMENSIONS
-    tokens = tokenize(text)
+    embeddings = embed_texts([text])
 
-    if not tokens:
-        return vector
+    if not embeddings:
+        return [0.0] * EMBEDDING_DIMENSIONS
 
-    for token in tokens:
-        digest = hashlib.sha256(token.encode("utf-8")).digest()
-        index = int.from_bytes(digest[:4], byteorder="big") % EMBEDDING_DIMENSIONS
-        vector[index] += 1.0
+    return embeddings[0]
 
-    norm = math.sqrt(sum(value * value for value in vector))
 
-    if norm == 0:
-        return vector
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    if not texts:
+        return []
 
-    return [value / norm for value in vector]
+    cleaned_texts = [
+        text.strip()
+        for text in texts
+    ]
+
+    model = get_embedding_model()
+
+    embeddings = model.encode(
+        cleaned_texts,
+        normalize_embeddings=True,
+        convert_to_numpy=True,
+        show_progress_bar=False,
+    )
+
+    results = []
+
+    for embedding in embeddings:
+        values = [
+            float(value)
+            for value in embedding.tolist()
+        ]
+
+        results.append(_validate_embedding(values))
+
+    return results

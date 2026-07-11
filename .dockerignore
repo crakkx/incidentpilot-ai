@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+__pycache__
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.env
+refactor_backup
+*.pyc
+*.pyo
+*.pyd
+.DS_Store

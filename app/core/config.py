@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_name: str = "IncidentPilot AI"
-    app_version: str = "0.4.0"
+    app_version: str = "0.7.0"
     environment: str = "development"
 
     database_url: str = (
@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     log_level: str = "INFO"
+
+    embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
+    embedding_dimensions: int = 384
 
     model_config = SettingsConfigDict(
         env_file=".env",

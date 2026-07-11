@@ -8,6 +8,9 @@ class DocumentRead(BaseModel):
     title: str
     filename: str | None
     content_type: str | None
+    service_name: str | None
+    document_type: str
+    severity: str | None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -18,6 +21,9 @@ class DocumentUploadResponse(BaseModel):
     title: str
     filename: str | None
     content_type: str | None
+    service_name: str | None
+    document_type: str
+    severity: str | None
     created_at: datetime
     chunk_count: int
 

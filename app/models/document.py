@@ -17,6 +17,10 @@ class Document(Base):
     content_type = Column(String(120), nullable=True)
     content = Column(Text, nullable=False)
 
+    service_name = Column(String(120), nullable=True)
+    document_type = Column(String(80), default="runbook", nullable=False)
+    severity = Column(String(50), nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     chunks = relationship(

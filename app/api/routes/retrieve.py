@@ -18,4 +18,7 @@ def retrieve(
         db=db,
         query=payload.query,
         top_k=payload.top_k,
+        service_name=payload.service_name,
+        document_type=payload.document_type,
+        severity=payload.severity,
     )

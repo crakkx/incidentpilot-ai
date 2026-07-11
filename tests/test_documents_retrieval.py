@@ -6,6 +6,11 @@ from app.models import Document, DocumentChunk
 def test_upload_document(client, db_session):
     response = client.post(
         "/documents/upload",
+        data={
+            "service_name": "checkout-api",
+            "document_type": "runbook",
+            "severity": "high",
+        },
         files={
             "file": (
                 "checkout-runbook.md",
@@ -24,6 +29,9 @@ def test_upload_document(client, db_session):
 
     assert data["filename"] == "checkout-runbook.md"
     assert data["content_type"] == "text/markdown"
+    assert data["service_name"] == "checkout-api"
+    assert data["document_type"] == "runbook"
+    assert data["severity"] == "high"
     assert data["chunk_count"] >= 1
 
     document = db_session.get(Document, data["id"])
@@ -35,6 +43,10 @@ def test_upload_document(client, db_session):
 def test_upload_document_rejects_binary_file(client):
     response = client.post(
         "/documents/upload",
+        data={
+            "service_name": "checkout-api",
+            "document_type": "runbook",
+        },
         files={
             "file": (
                 "binary-file.bin",
@@ -53,6 +65,9 @@ def test_index_documents(client, db_session):
         title="Manual Database Runbook",
         filename="database-runbook.md",
         content_type="text/markdown",
+        service_name="payments-api",
+        document_type="runbook",
+        severity="high",
         content=(
             "Database connection pool exhaustion can cause checkout latency. "
             "Check slow queries and active connections."
@@ -85,6 +100,11 @@ def test_retrieve(client):
 
     upload_response = client.post(
         "/documents/upload",
+        data={
+            "service_name": "payments-api",
+            "document_type": "runbook",
+            "severity": "high",
+        },
         files={
             "file": (
                 "needle-runbook.md",
@@ -104,19 +124,78 @@ def test_retrieve(client):
         "/retrieve",
         json={
             "query": unique_term,
+            "service_name": "payments-api",
             "top_k": 3,
         },
     )
 
     assert retrieve_response.status_code == 200
 
-    results = retrieve_response.json()["results"]
+    chunks = retrieve_response.json()["chunks"]
 
-    assert len(results) >= 1
+    assert len(chunks) >= 1
 
     combined_content = " ".join(
-        result["content"]
-        for result in results
+        chunk["content"]
+        for chunk in chunks
     ).lower()
 
     assert unique_term in combined_content
+    assert chunks[0]["metadata"]["service_name"] == "payments-api"
+    assert "score" in chunks[0]
+
+
+def test_retrieve_filters_by_service_name(client):
+    shared_text = "database timeout after deployment caused payment failures"
+
+    client.post(
+        "/documents/upload",
+        data={
+            "service_name": "payments-api",
+            "document_type": "runbook",
+            "severity": "high",
+        },
+        files={
+            "file": (
+                "payments-runbook.md",
+                shared_text.encode("utf-8"),
+                "text/markdown",
+            )
+        },
+    )
+
+    client.post(
+        "/documents/upload",
+        data={
+            "service_name": "search-api",
+            "document_type": "runbook",
+            "severity": "medium",
+        },
+        files={
+            "file": (
+                "search-runbook.md",
+                shared_text.encode("utf-8"),
+                "text/markdown",
+            )
+        },
+    )
+
+    response = client.post(
+        "/retrieve",
+        json={
+            "query": "database timeout after deployment",
+            "service_name": "payments-api",
+            "top_k": 5,
+        },
+    )
+
+    assert response.status_code == 200
+
+    chunks = response.json()["chunks"]
+
+    assert len(chunks) >= 1
+
+    assert all(
+        chunk["metadata"]["service_name"] == "payments-api"
+        for chunk in chunks
+    )

@@ -17,3 +17,9 @@ def test_seed_data(db_session):
     assert count_rows(db_session, Document) >= 2
     assert count_rows(db_session, LogEntry) >= 3
     assert count_rows(db_session, Metric) == 3
+
+    statement = select(Document).where(Document.service_name == "payments-api")
+    payments_document = db_session.execute(statement).scalar_one_or_none()
+
+    assert payments_document is not None
+    assert payments_document.document_type == "runbook"

@@ -1,7 +1,7 @@
 def chunk_text(
     text: str,
-    max_words: int = 80,
-    overlap_words: int = 20,
+    max_words: int = 120,
+    overlap_words: int = 30,
 ) -> list[str]:
     cleaned_text = text.strip()
 
