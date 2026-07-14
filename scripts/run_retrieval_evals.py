@@ -1,5 +1,5 @@
-from app.evals.retrieval_eval import run_evals
+from app.evals.retrieval_eval import main
 
 
 if __name__ == "__main__":
-    run_evals()
+    main()

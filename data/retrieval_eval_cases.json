@@ -1,0 +1,123 @@
+[
+  {
+    "id": "payments-database-timeout",
+    "query": "What should we do if payments-api has database timeout after deployment?",
+    "expected_chunk_keywords": [
+      "database timeout",
+      "rollback",
+      "connection pool"
+    ],
+    "expected_service": "payments-api",
+    "expected_document_type": "runbook",
+    "minimum_keyword_matches": 1
+  },
+  {
+    "id": "checkout-high-latency",
+    "query": "How to handle high latency in checkout-api?",
+    "expected_chunk_keywords": [
+      "latency",
+      "cache",
+      "database",
+      "rate limit"
+    ],
+    "expected_service": "checkout-api",
+    "expected_document_type": "runbook",
+    "minimum_keyword_matches": 1
+  },
+  {
+    "id": "payment-authorization-timeout",
+    "query": "Payment authorization requests are timing out with HTTP 504 errors.",
+    "expected_chunk_keywords": [
+      "504",
+      "retry queue",
+      "provider status"
+    ],
+    "expected_service": "payments-api",
+    "expected_document_type": "runbook",
+    "minimum_keyword_matches": 1
+  },
+  {
+    "id": "database-pool-exhaustion",
+    "query": "What should I inspect when the database connection pool is exhausted?",
+    "expected_chunk_keywords": [
+      "connection pool",
+      "slow queries",
+      "connection leak"
+    ],
+    "expected_service": "payments-api",
+    "expected_document_type": "runbook",
+    "minimum_keyword_matches": 1
+  },
+  {
+    "id": "deployment-evidence",
+    "query": "An incident started immediately after a payments deployment. What evidence should I collect?",
+    "expected_chunk_keywords": [
+      "deployment timestamp",
+      "commit SHA",
+      "error rate"
+    ],
+    "expected_service": "payments-api",
+    "expected_document_type": "runbook",
+    "minimum_keyword_matches": 1
+  },
+  {
+    "id": "payments-rollback",
+    "query": "Should we roll back a bad payments deployment?",
+    "expected_chunk_keywords": [
+      "roll back",
+      "rollback",
+      "error rate"
+    ],
+    "expected_service": "payments-api",
+    "expected_document_type": "runbook",
+    "minimum_keyword_matches": 1
+  },
+  {
+    "id": "search-ranking-latency",
+    "query": "Search results became slow after a ranking logic change.",
+    "expected_chunk_keywords": [
+      "ranking",
+      "search backend",
+      "cache"
+    ],
+    "expected_service": "search-api",
+    "expected_document_type": "runbook",
+    "minimum_keyword_matches": 1
+  },
+  {
+    "id": "search-backend-overload",
+    "query": "The search backend is overloaded. How can we reduce user impact?",
+    "expected_chunk_keywords": [
+      "degraded mode",
+      "cache TTL",
+      "search backend"
+    ],
+    "expected_service": "search-api",
+    "expected_document_type": "runbook",
+    "minimum_keyword_matches": 1
+  },
+  {
+    "id": "checkout-failure-logs",
+    "query": "Which logs should be checked when checkout requests fail?",
+    "expected_chunk_keywords": [
+      "WARN",
+      "ERROR",
+      "checkout-api"
+    ],
+    "expected_service": "checkout-api",
+    "expected_document_type": "runbook",
+    "minimum_keyword_matches": 1
+  },
+  {
+    "id": "payment-provider-degradation",
+    "query": "The external payment provider is degraded. What should the team do?",
+    "expected_chunk_keywords": [
+      "provider status",
+      "fallback provider",
+      "payments-team"
+    ],
+    "expected_service": "payments-api",
+    "expected_document_type": "runbook",
+    "minimum_keyword_matches": 1
+  }
+]

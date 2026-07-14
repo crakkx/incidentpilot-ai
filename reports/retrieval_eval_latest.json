@@ -1,0 +1,154 @@
+{
+  "generated_at": "2026-07-14T17:46:16.803562+00:00",
+  "api_url": "http://localhost:8000/retrieve",
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "top_k": 5,
+  "cases_path": "/app/data/retrieval_eval_cases.json",
+  "metrics": {
+    "query_count": 10,
+    "hit_at_1": 0.9,
+    "hit_at_3": 1.0,
+    "hit_at_5": 1.0,
+    "mrr": 0.95,
+    "avg_latency_ms": 31.201125000370666
+  },
+  "results": [
+    {
+      "case_id": "payments-database-timeout",
+      "query": "What should we do if payments-api has database timeout after deployment?",
+      "first_relevant_rank": 2,
+      "latency_ms": 78.06383300339803,
+      "returned_chunks": 3,
+      "top_score": 0.570895459002528,
+      "matched_keywords": [
+        "connection pool"
+      ],
+      "matched_document_title": "Database Connection Pool Runbook"
+    },
+    {
+      "case_id": "checkout-high-latency",
+      "query": "How to handle high latency in checkout-api?",
+      "first_relevant_rank": 1,
+      "latency_ms": 24.74399999482557,
+      "returned_chunks": 1,
+      "top_score": 0.6383507251739502,
+      "matched_keywords": [
+        "latency",
+        "database"
+      ],
+      "matched_document_title": "Checkout Latency Runbook"
+    },
+    {
+      "case_id": "payment-authorization-timeout",
+      "query": "Payment authorization requests are timing out with HTTP 504 errors.",
+      "first_relevant_rank": 1,
+      "latency_ms": 32.76337499846704,
+      "returned_chunks": 3,
+      "top_score": 0.5241785616661833,
+      "matched_keywords": [
+        "504",
+        "retry queue",
+        "provider status"
+      ],
+      "matched_document_title": "Payment Timeout Runbook"
+    },
+    {
+      "case_id": "database-pool-exhaustion",
+      "query": "What should I inspect when the database connection pool is exhausted?",
+      "first_relevant_rank": 1,
+      "latency_ms": 24.812999996356666,
+      "returned_chunks": 3,
+      "top_score": 0.7030528364746085,
+      "matched_keywords": [
+        "connection pool",
+        "slow queries",
+        "connection leak"
+      ],
+      "matched_document_title": "Database Connection Pool Runbook"
+    },
+    {
+      "case_id": "deployment-evidence",
+      "query": "An incident started immediately after a payments deployment. What evidence should I collect?",
+      "first_relevant_rank": 1,
+      "latency_ms": 30.591250004363246,
+      "returned_chunks": 3,
+      "top_score": 0.500429212995865,
+      "matched_keywords": [
+        "deployment timestamp",
+        "commit SHA",
+        "error rate"
+      ],
+      "matched_document_title": "Deployment Rollback Runbook"
+    },
+    {
+      "case_id": "payments-rollback",
+      "query": "Should we roll back a bad payments deployment?",
+      "first_relevant_rank": 1,
+      "latency_ms": 24.71079200040549,
+      "returned_chunks": 3,
+      "top_score": 0.4094889921863696,
+      "matched_keywords": [
+        "roll back",
+        "rollback",
+        "error rate"
+      ],
+      "matched_document_title": "Deployment Rollback Runbook"
+    },
+    {
+      "case_id": "search-ranking-latency",
+      "query": "Search results became slow after a ranking logic change.",
+      "first_relevant_rank": 1,
+      "latency_ms": 26.757125000585802,
+      "returned_chunks": 1,
+      "top_score": 0.5513605742835666,
+      "matched_keywords": [
+        "ranking",
+        "search backend",
+        "cache"
+      ],
+      "matched_document_title": "Search API Latency Runbook"
+    },
+    {
+      "case_id": "search-backend-overload",
+      "query": "The search backend is overloaded. How can we reduce user impact?",
+      "first_relevant_rank": 1,
+      "latency_ms": 24.148875003447756,
+      "returned_chunks": 1,
+      "top_score": 0.5697961962466006,
+      "matched_keywords": [
+        "degraded mode",
+        "cache TTL",
+        "search backend"
+      ],
+      "matched_document_title": "Search API Latency Runbook"
+    },
+    {
+      "case_id": "checkout-failure-logs",
+      "query": "Which logs should be checked when checkout requests fail?",
+      "first_relevant_rank": 1,
+      "latency_ms": 21.989000000758097,
+      "returned_chunks": 1,
+      "top_score": 0.431744430557226,
+      "matched_keywords": [
+        "WARN",
+        "ERROR",
+        "checkout-api"
+      ],
+      "matched_document_title": "Checkout Latency Runbook"
+    },
+    {
+      "case_id": "payment-provider-degradation",
+      "query": "The external payment provider is degraded. What should the team do?",
+      "first_relevant_rank": 1,
+      "latency_ms": 23.43000000109896,
+      "returned_chunks": 3,
+      "top_score": 0.4710059796564603,
+      "matched_keywords": [
+        "provider status",
+        "fallback provider",
+        "payments-team"
+      ],
+      "matched_document_title": "Payment Timeout Runbook"
+    }
+  ]
+}

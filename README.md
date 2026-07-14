@@ -92,3 +92,24 @@ curl -X POST http://localhost:8000/retrieve \
 ```bash
 docker compose up --build
 ```
+
+<!-- RETRIEVAL_EVAL_START -->
+## Current retrieval evaluation
+
+Last evaluated: `2026-07-14T17:46:16.803562+00:00`
+
+Embedding model: `sentence-transformers/all-MiniLM-L6-v2`
+
+| Metric | Current result |
+|---|---:|
+| Hit@1 | 90.00% |
+| Hit@3 | 100.00% |
+| Hit@5 | 100.00% |
+| MRR | 0.9500 |
+| Average latency | 31.20 ms |
+| Evaluation queries | 10 |
+
+The evaluation uses seeded IncidentPilot runbooks with metadata and
+keyword-based relevance labels. Detailed results are written to
+`reports/retrieval_eval_latest.json`.
+<!-- RETRIEVAL_EVAL_END -->
