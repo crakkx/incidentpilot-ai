@@ -13,6 +13,18 @@ services:
       HF_HOME: /cache/huggingface
       TORCH_HOME: /cache/torch
       SENTENCE_TRANSFORMERS_HOME: /cache/sentence-transformers
+
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: qwen2.5:3b
+      OLLAMA_TIMEOUT_SECONDS: 240
+      OLLAMA_KEEP_ALIVE: 10m
+      OLLAMA_NUM_CTX: 8192
+      OLLAMA_TEMPERATURE: 0.0
+
+      RCA_MAX_LOGS: 50
+      RCA_MAX_METRICS: 50
+      RCA_MAX_DEPLOYMENTS: 20
+      RCA_RUNBOOK_TOP_K: 5
     depends_on:
       postgres:
         condition: service_healthy
