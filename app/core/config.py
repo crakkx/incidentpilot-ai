@@ -30,11 +30,13 @@ class Settings(BaseSettings):
     ollama_keep_alive: str = "10m"
     ollama_num_ctx: int = 8192
     ollama_temperature: float = 0.0
+    ollama_num_predict: int = 1800
+    ollama_seed: int = 42
 
     # Limit the evidence sent to the small local model
-    rca_max_logs: int = 50
-    rca_max_metrics: int = 50
-    rca_max_deployments: int = 20
+    rca_max_logs: int = 20
+    rca_max_metrics: int = 20
+    rca_max_deployments: int = 10
     rca_runbook_top_k: int = 5
 
     model_config = SettingsConfigDict(

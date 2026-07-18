@@ -47,12 +47,26 @@ class OllamaRCAClient(RCAClient):
     ) -> list[dict[str, str]]:
         schema = RCAReport.model_json_schema()
 
+        # Compact JSON saves prompt tokens while still grounding
+        # the model with the exact expected schema.
+        compact_schema = json.dumps(
+            schema,
+            separators=(",", ":"),
+        )
+
+        compact_evidence = json.dumps(
+            evidence_payload,
+            separators=(",", ":"),
+            default=str,
+        )
+
         user_prompt = (
-            "Generate an RCA report using only the supplied evidence.\n\n"
-            "The report must conform exactly to this JSON schema:\n"
-            f"{json.dumps(schema, indent=2)}\n\n"
-            "Incident evidence:\n"
-            f"{json.dumps(evidence_payload, indent=2, default=str)}"
+            "Generate one incident RCA report using only the supplied "
+            "evidence.\n\n"
+            "Return only JSON matching this schema:\n"
+            f"{compact_schema}\n\n"
+            "Supplied evidence:\n"
+            f"{compact_evidence}"
         )
 
         return [
@@ -69,7 +83,7 @@ class OllamaRCAClient(RCAClient):
     def _call_ollama(
         self,
         messages: list[dict[str, str]],
-    ) -> str:
+    ) -> tuple[str, dict[str, Any]]:
         payload = {
             "model": self.model_name,
             "messages": messages,
@@ -78,6 +92,8 @@ class OllamaRCAClient(RCAClient):
             "options": {
                 "temperature": settings.ollama_temperature,
                 "num_ctx": settings.ollama_num_ctx,
+                "num_predict": settings.ollama_num_predict,
+                "seed": settings.ollama_seed,
             },
             "keep_alive": settings.ollama_keep_alive,
         }
@@ -96,9 +112,9 @@ class OllamaRCAClient(RCAClient):
         except httpx.HTTPError as exc:
             raise OllamaRequestError(
                 "Could not generate RCA with Ollama. "
-                f"Model={self.model_name}, "
-                f"URL={self.base_url}. "
-                f"Original error: {exc}"
+                f"model={self.model_name}, "
+                f"url={self.base_url}, "
+                f"error={exc}"
             ) from exc
 
         try:
@@ -111,28 +127,47 @@ class OllamaRCAClient(RCAClient):
             TypeError,
         ) as exc:
             raise InvalidRCAOutputError(
-                "Ollama returned an unexpected response format."
+                "Ollama returned an unexpected API response."
             ) from exc
 
         if not isinstance(content, str):
             content = json.dumps(content)
 
-        return content
+        generation_metadata = {
+            "done_reason": response_data.get("done_reason"),
+            "prompt_eval_count": response_data.get(
+                "prompt_eval_count"
+            ),
+            "eval_count": response_data.get("eval_count"),
+            "total_duration": response_data.get(
+                "total_duration"
+            ),
+            "load_duration": response_data.get(
+                "load_duration"
+            ),
+        }
+
+        return content, generation_metadata
 
     def generate_rca(
         self,
         evidence_payload: dict[str, Any],
     ) -> RCAReport:
         messages = self._build_messages(
-            evidence_payload
+            evidence_payload=evidence_payload,
         )
 
-        validation_error: ValidationError | None = None
+        last_content = ""
+        last_metadata: dict[str, Any] = {}
+        last_validation_error: ValidationError | None = None
 
-        # Two attempts help a small local model recover from
-        # an occasional schema mistake.
         for attempt in range(2):
-            content = self._call_ollama(messages)
+            content, metadata = self._call_ollama(
+                messages=messages,
+            )
+
+            last_content = content
+            last_metadata = metadata
 
             try:
                 return RCAReport.model_validate_json(
@@ -140,9 +175,38 @@ class OllamaRCAClient(RCAClient):
                 )
 
             except ValidationError as exc:
-                validation_error = exc
+                last_validation_error = exc
 
                 if attempt == 0:
+                    validation_errors = json.dumps(
+                        exc.errors(),
+                        separators=(",", ":"),
+                        default=str,
+                    )
+
+                    correction_instruction = (
+                        "The previous response failed schema validation. "
+                        "Return the complete corrected JSON object only.\n\n"
+                        "Critical representation rules:\n"
+                        "- recommended_actions must be an array of strings.\n"
+                        "- missing_information must be an array of strings.\n"
+                        "- Do not put description, action, or text objects inside those arrays.\n"
+                        "- Every evidence item must include source_type, source_id, "
+                        "excerpt, and explanation.\n\n"
+                        'Correct example: "recommended_actions": '
+                        '["Roll back the deployment", "Inspect slow queries"]\n\n'
+                        'Incorrect example: "recommended_actions": '
+                        '[{"description": "Roll back the deployment"}]\n\n'
+                        f"Validation errors:\n{validation_errors}"
+                    )
+
+                    if metadata.get("done_reason") == "length":
+                        correction_instruction += (
+                            "\nThe previous answer was truncated. "
+                            "Use shorter summaries and fewer evidence "
+                            "items, but return a complete JSON object."
+                        )
+
                     messages.extend(
                         [
                             {
@@ -151,19 +215,24 @@ class OllamaRCAClient(RCAClient):
                             },
                             {
                                 "role": "user",
-                                "content": (
-                                    "The previous response failed schema "
-                                    "validation. Correct it and return only "
-                                    "valid JSON matching the schema. "
-                                    f"Validation errors: {exc.errors()}"
-                                ),
+                                "content": correction_instruction,
                             },
                         ]
                     )
 
+        error_details = (
+            last_validation_error.errors()
+            if last_validation_error
+            else []
+        )
+
         raise InvalidRCAOutputError(
-            "Ollama did not produce a valid RCA report "
-            f"after two attempts: {validation_error}"
+            "Ollama failed RCA schema validation after two attempts. "
+            f"generation_metadata="
+            f"{json.dumps(last_metadata, default=str)}; "
+            f"validation_errors="
+            f"{json.dumps(error_details, default=str)}; "
+            f"raw_output={last_content[:1500]!r}"
         )
 
 
