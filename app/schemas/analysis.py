@@ -223,4 +223,9 @@ class IncidentAnalysisResponse(BaseModel):
     incident_id: str
     status: str
     model_name: str
+
+    pipeline_version: str
+    schema_version: str
+    prompt_version: str
+
     report: RCAReport

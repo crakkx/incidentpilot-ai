@@ -1,0 +1,117 @@
+{
+  "id": "rca-002",
+  "title": "Latency increase with insufficient evidence",
+  "scenario_type": "insufficient_evidence",
+  "difficulty": "hard",
+  "tags": [
+    "uncertainty",
+    "missing-logs",
+    "low-confidence"
+  ],
+  "incident": {
+    "id": "incident-rca-002",
+    "title": "Checkout latency increased",
+    "description": "Checkout p95 latency increased, but detailed logs and traces are unavailable.",
+    "service_name": "checkout-api",
+    "severity": "medium",
+    "started_at": "2026-07-19T12:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "metric-rca-002",
+      "source_type": "metric",
+      "timestamp": "2026-07-19T12:05:00Z",
+      "content": "latency_p95 = 2200 ms",
+      "data": {
+        "metric_name": "latency_p95",
+        "value": 2200,
+        "unit": "ms"
+      }
+    },
+    {
+      "id": "runbook-rca-002",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "Checkout latency may result from payment providers, database pressure, inventory calls or cache misses. Inspect logs and traces before assigning a root cause.",
+      "data": {
+        "document_title": "Checkout Latency Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-latency",
+        "concept": "Checkout p95 latency was elevated.",
+        "acceptable_source_ids": [
+          "metric-rca-002"
+        ],
+        "keywords_any": [
+          "2200",
+          "latency"
+        ],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "unknown",
+        "insufficient evidence",
+        "cannot determine"
+      ],
+      "suspected_trigger_keywords_any": [],
+      "causal_strength": "unknown",
+      "acceptable_confidence": [
+        "low"
+      ],
+      "must_distinguish_mechanism_and_trigger": false
+    },
+    "actions": {
+      "required_categories": [
+        "investigate",
+        "collect-evidence"
+      ],
+      "required_keyword_groups": [
+        [
+          "logs",
+          "traces"
+        ]
+      ],
+      "forbidden_keywords": [
+        "restart database immediately",
+        "rollback confirmed"
+      ]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-latency",
+        "source_id": "metric-rca-002",
+        "name": "latency_p95",
+        "value": 2200,
+        "unit": "ms",
+        "tolerance": 0
+      }
+    ],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": [
+        "the deployment caused",
+        "database caused",
+        "payment provider caused"
+      ]
+    },
+    "required_missing_information": [
+      "application logs",
+      "distributed traces",
+      "dependency latency",
+      "deployment history"
+    ],
+    "forbidden_claims": [
+      "database connection pool exhaustion",
+      "payment provider outage",
+      "recent deployment caused the incident"
+    ]
+  },
+  "notes": "A correct model should resist inventing a cause and explicitly request more evidence."
+}

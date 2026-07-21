@@ -1,0 +1,11 @@
+{
+  "dataset_id": "incidentpilot-rca-eval",
+  "dataset_version": "rca-eval/1.0.0",
+  "schema_version": "rca-report/1.0.0",
+  "description": "IncidentPilot RCA evaluation dataset containing clear, uncertain, conflicting, temporal, numeric and causal-grounding scenarios.",
+  "case_files": [
+    "cases/rca-001-clear-pool-exhaustion.json",
+    "cases/rca-002-insufficient-evidence.json",
+    "cases/rca-003-false-deployment-correlation.json"
+  ]
+}

@@ -72,5 +72,14 @@ def analyze_incident(
         "incident_id": incident_id,
         "status": analysis_run.status,
         "model_name": analysis_run.model_name,
+        "pipeline_version": (
+            analysis_run.pipeline_version
+        ),
+        "schema_version": (
+            analysis_run.schema_version
+        ),
+        "prompt_version": (
+            analysis_run.prompt_version
+        ),
         "report": report,
     }

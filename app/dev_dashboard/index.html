@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+  <title>IncidentPilot Developer Console</title>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: #0b1020;
+      color: #e7eaf0;
+    }
+
+    header {
+      padding: 22px 28px;
+      background: #11182d;
+      border-bottom: 1px solid #27304a;
+    }
+
+    header h1 {
+      margin: 0 0 5px;
+      font-size: 24px;
+    }
+
+    header p {
+      margin: 0;
+      color: #9fa9bd;
+    }
+
+    main {
+      max-width: 1400px;
+      margin: auto;
+      padding: 24px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .versions {
+      grid-template-columns:
+        repeat(auto-fit, minmax(190px, 1fr));
+    }
+
+    .two-column {
+      grid-template-columns:
+        repeat(auto-fit, minmax(420px, 1fr));
+      margin-top: 16px;
+    }
+
+    .card {
+      background: #121a2d;
+      border: 1px solid #28324c;
+      border-radius: 10px;
+      padding: 18px;
+    }
+
+    .card h2 {
+      margin-top: 0;
+      font-size: 18px;
+    }
+
+    .label {
+      color: #94a0b8;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .value {
+      margin-top: 7px;
+      font-weight: 650;
+      word-break: break-word;
+    }
+
+    select,
+    button {
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 9px;
+      padding: 11px;
+      border-radius: 7px;
+      border: 1px solid #38445f;
+      background: #0d1425;
+      color: #f2f4f8;
+    }
+
+    button {
+      cursor: pointer;
+      background: #315bd8;
+      border-color: #315bd8;
+      font-weight: 650;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+
+    pre {
+      max-height: 620px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #080d19;
+      border: 1px solid #27304a;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 10px;
+      border-bottom: 1px solid #28324c;
+      vertical-align: top;
+    }
+
+    th {
+      color: #aeb7ca;
+    }
+
+    .status {
+      margin-top: 12px;
+      color: #aeb7ca;
+    }
+
+    .error {
+      color: #ff8d8d;
+    }
+
+    .success {
+      color: #81dda2;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>IncidentPilot Developer Console</h1>
+    <p>
+      RCA execution, baseline inspection and
+      evaluation dataset visibility.
+    </p>
+  </header>
+
+  <main>
+    <section
+      id="versionCards"
+      class="grid versions"
+    ></section>
+
+    <section class="grid two-column">
+      <div class="card">
+        <h2>Run incident RCA</h2>
+
+        <label
+          class="label"
+          for="incidentSelect"
+        >
+          Incident
+        </label>
+
+        <select id="incidentSelect">
+          <option>Loading incidents...</option>
+        </select>
+
+        <button id="runButton">
+          Generate RCA
+        </button>
+
+        <div
+          id="runStatus"
+          class="status"
+        ></div>
+
+        <pre id="rcaOutput">
+No RCA run selected.
+        </pre>
+      </div>
+
+      <div class="card">
+        <h2>v0.1.0 baseline</h2>
+        <pre id="baselineOutput">
+Loading baseline...
+        </pre>
+      </div>
+    </section>
+
+    <section
+      class="card"
+      style="margin-top: 16px"
+    >
+      <h2>RCA evaluation dataset</h2>
+
+      <div
+        id="datasetSummary"
+        class="status"
+      ></div>
+
+      <div style="overflow-x: auto">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Scenario</th>
+              <th>Difficulty</th>
+              <th>Service</th>
+              <th>Expected confidence</th>
+              <th>Title</th>
+            </tr>
+          </thead>
+          <tbody id="datasetRows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const pretty = value =>
+      JSON.stringify(value, null, 2);
+
+    async function requestJson(
+      url,
+      options = {}
+    ) {
+      const response = await fetch(
+        url,
+        options
+      );
+
+      const body = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          body.detail || pretty(body)
+        );
+      }
+
+      return body;
+    }
+
+    async function loadMetadata() {
+      const metadata = await requestJson(
+        "/dev/api/meta"
+      );
+
+      const config = metadata.run_config;
+
+      const cards = [
+        [
+          "Pipeline",
+          metadata.pipeline_version
+        ],
+        [
+          "Schema",
+          metadata.schema_version
+        ],
+        [
+          "Prompt",
+          metadata.prompt_version
+        ],
+        [
+          "LLM",
+          config.llm.model
+        ],
+        [
+          "Embedding",
+          config.retrieval.embedding_model
+        ],
+        [
+          "Top K",
+          config.retrieval.runbook_top_k
+        ]
+      ];
+
+      document.getElementById(
+        "versionCards"
+      ).innerHTML = cards.map(
+        ([label, value]) => `
+          <div class="card">
+            <div class="label">${label}</div>
+            <div class="value">${value}</div>
+          </div>
+        `
+      ).join("");
+    }
+
+    async function loadIncidents() {
+      const incidents = await requestJson(
+        "/incidents"
+      );
+
+      const select = document.getElementById(
+        "incidentSelect"
+      );
+
+      if (!incidents.length) {
+        select.innerHTML =
+          "<option value=''>No incidents available</option>";
+        return;
+      }
+
+      select.innerHTML = incidents.map(
+        incident => `
+          <option value="${incident.id}">
+            ${incident.service_name || "unknown"}
+            — ${incident.title}
+          </option>
+        `
+      ).join("");
+    }
+
+    async function loadBaseline() {
+      const baseline = await requestJson(
+        "/dev/api/baseline"
+      );
+
+      document.getElementById(
+        "baselineOutput"
+      ).textContent = pretty(baseline);
+    }
+
+    async function loadDataset() {
+      const dataset = await requestJson(
+        "/dev/api/eval-dataset"
+      );
+
+      document.getElementById(
+        "datasetSummary"
+      ).textContent =
+        `${dataset.cases.length} cases · ` +
+        `${dataset.manifest.dataset_version}`;
+
+      document.getElementById(
+        "datasetRows"
+      ).innerHTML = dataset.cases.map(
+        item => `
+          <tr>
+            <td>${item.id}</td>
+            <td>${item.scenario_type}</td>
+            <td>${item.difficulty}</td>
+            <td>${item.service_name}</td>
+            <td>
+              ${item.expected_confidence.join(", ")}
+            </td>
+            <td>${item.title}</td>
+          </tr>
+        `
+      ).join("");
+    }
+
+    async function runRca() {
+      const incidentId =
+        document.getElementById(
+          "incidentSelect"
+        ).value;
+
+      const button =
+        document.getElementById(
+          "runButton"
+        );
+
+      const status =
+        document.getElementById(
+          "runStatus"
+        );
+
+      const output =
+        document.getElementById(
+          "rcaOutput"
+        );
+
+      if (!incidentId) {
+        status.textContent =
+          "Select an incident first.";
+        status.className = "status error";
+        return;
+      }
+
+      button.disabled = true;
+      status.textContent =
+        "Generating RCA with local Qwen...";
+      status.className = "status";
+      output.textContent =
+        "Waiting for analysis...";
+
+      try {
+        const result = await requestJson(
+          `/incidents/${incidentId}/analyze`,
+          {
+            method: "POST"
+          }
+        );
+
+        output.textContent = pretty(result);
+        status.textContent =
+          "Analysis completed.";
+        status.className =
+          "status success";
+      } catch (error) {
+        output.textContent =
+          String(error);
+        status.textContent =
+          "Analysis failed.";
+        status.className =
+          "status error";
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    document.getElementById(
+      "runButton"
+    ).addEventListener(
+      "click",
+      runRca
+    );
+
+    Promise.all([
+      loadMetadata(),
+      loadIncidents(),
+      loadBaseline(),
+      loadDataset()
+    ]).catch(error => {
+      console.error(error);
+    });
+  </script>
+</body>
+</html>

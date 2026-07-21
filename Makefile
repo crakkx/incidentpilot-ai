@@ -3,7 +3,7 @@ SHELL := /bin/sh
 TEST_DATABASE_URL := postgresql+psycopg://incidentpilot:incidentpilot@postgres:5432/incidentpilot_test
 OLLAMA_MODEL ?= qwen2.5:3b
 
-.PHONY: help setup up down logs migrate seed reindex test eval demo status
+.PHONY: help setup up down logs migrate seed reindex test eval demo status dashboard
 
 help:
 	@echo "IncidentPilot AI commands"
@@ -76,3 +76,8 @@ status:
 	docker compose ps
 	@echo ""
 	@ollama ps || true
+
+dashboard:
+	docker compose up -d
+	@echo "Developer Console:"
+	@echo "http://localhost:8000/dev"

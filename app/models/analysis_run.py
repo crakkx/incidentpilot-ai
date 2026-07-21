@@ -6,6 +6,11 @@ from sqlalchemy.orm import relationship
 from app.db.base import Base
 from app.models.base import new_id
 
+from app.core.versions import (
+    PIPELINE_VERSION,
+    RCA_PROMPT_VERSION,
+    RCA_SCHEMA_VERSION,
+)
 
 class AnalysisRun(Base):
     __tablename__ = "analysis_runs"
@@ -24,8 +29,8 @@ class AnalysisRun(Base):
 
     status = Column(
         String(50),
-        default="pending",
         nullable=False,
+        default="pending",
     )
 
     model_name = Column(
@@ -33,30 +38,33 @@ class AnalysisRun(Base):
         nullable=True,
     )
 
-    # A short summary for easier list/display operations.
-    summary = Column(
-        Text,
-        nullable=True,
+    pipeline_version = Column(
+        String(50),
+        default=PIPELINE_VERSION,
+        nullable=False,
     )
 
-    # The validated structured RCAReport.
-    report = Column(
+    schema_version = Column(
+        String(80),
+        default=RCA_SCHEMA_VERSION,
+        nullable=False,
+    )
+
+    prompt_version = Column(
+        String(80),
+        default=RCA_PROMPT_VERSION,
+        nullable=False,
+    )
+
+    run_config = Column(
         JSON,
         nullable=True,
     )
 
-    # Exact incident/log/metric/deployment/runbook evidence
-    # that was sent to the model.
-    evidence_snapshot = Column(
-        JSON,
-        nullable=True,
-    )
-
-    # Saved when model generation or validation fails.
-    error_message = Column(
-        Text,
-        nullable=True,
-    )
+    summary = Column(Text, nullable=True)
+    report = Column(JSON, nullable=True)
+    evidence_snapshot = Column(JSON, nullable=True)
+    error_message = Column(Text, nullable=True)
 
     started_at = Column(
         DateTime,

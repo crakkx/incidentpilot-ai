@@ -22,6 +22,10 @@ from app.services.evidence_service import (
     validate_report_evidence,
 )
 
+from app.services.analysis_metadata import (
+    build_analysis_run_metadata,
+)
+
 
 def _mark_analysis_failed(
     db: Session,
@@ -61,11 +65,22 @@ def analyze_incident(
             detail="incident not found",
         )
 
+    run_metadata = build_analysis_run_metadata()
     analysis_run = create_analysis_run(
         db=db,
         incident_id=incident.id,
         model_name=settings.ollama_model,
         status="running",
+        pipeline_version=(
+            run_metadata["pipeline_version"]
+        ),
+        schema_version=(
+            run_metadata["schema_version"]
+        ),
+        prompt_version=(
+            run_metadata["prompt_version"]
+        ),
+        run_config=run_metadata["run_config"],
     )
 
     db.commit()

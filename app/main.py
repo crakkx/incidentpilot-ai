@@ -28,3 +28,12 @@ app.include_router(incidents.router)
 app.include_router(logs.router)
 app.include_router(documents.router)
 app.include_router(retrieve.router)
+
+if settings.environment == "development":
+    from app.dev_dashboard.router import (
+        router as developer_dashboard_router,
+    )
+
+    app.include_router(
+        developer_dashboard_router
+    )

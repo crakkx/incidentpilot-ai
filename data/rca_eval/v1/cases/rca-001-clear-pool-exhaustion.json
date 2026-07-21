@@ -1,0 +1,169 @@
+{
+  "id": "rca-001",
+  "title": "Clear database pool exhaustion with correlated deployment",
+  "scenario_type": "clear_cause",
+  "difficulty": "medium",
+  "tags": [
+    "database",
+    "connection-pool",
+    "deployment-correlation"
+  ],
+  "incident": {
+    "id": "incident-rca-001",
+    "title": "Payments failing after deployment",
+    "description": "Payment authorization requests began timing out shortly after a release.",
+    "service_name": "payments-api",
+    "severity": "high",
+    "started_at": "2026-07-19T10:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "deployment-rca-001",
+      "source_type": "deployment",
+      "timestamp": "2026-07-19T09:15:00Z",
+      "content": "payments-api version 2.4.0 deployed",
+      "data": {
+        "version": "2.4.0",
+        "commit_sha": "abc123"
+      }
+    },
+    {
+      "id": "log-rca-001-a",
+      "source_type": "log",
+      "timestamp": "2026-07-19T10:01:00Z",
+      "content": "database connection timeout while authorizing payment",
+      "data": {
+        "level": "ERROR"
+      }
+    },
+    {
+      "id": "log-rca-001-b",
+      "source_type": "log",
+      "timestamp": "2026-07-19T10:03:00Z",
+      "content": "database connection pool exhausted; request failed",
+      "data": {
+        "level": "ERROR",
+        "active_connections": 95,
+        "pool_limit": 100
+      }
+    },
+    {
+      "id": "metric-rca-001",
+      "source_type": "metric",
+      "timestamp": "2026-07-19T10:04:00Z",
+      "content": "db_connections = 95 count",
+      "data": {
+        "metric_name": "db_connections",
+        "value": 95,
+        "unit": "count"
+      }
+    },
+    {
+      "id": "runbook-rca-001",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "For connection pool exhaustion, inspect connection leaks, slow queries and transaction duration. Roll back only when the deployment is strongly correlated.",
+      "data": {
+        "document_title": "Payments Database Timeout Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-pool-exhausted",
+        "concept": "Database connection pool exhaustion was directly observed.",
+        "acceptable_source_ids": [
+          "log-rca-001-b"
+        ],
+        "keywords_any": [
+          "pool exhausted",
+          "connection pool exhaustion"
+        ],
+        "required": true
+      },
+      {
+        "id": "observation-database-timeout",
+        "concept": "Payment authorization experienced a database timeout.",
+        "acceptable_source_ids": [
+          "log-rca-001-a"
+        ],
+        "keywords_any": [
+          "database timeout",
+          "connection timeout"
+        ],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "connection pool exhaustion",
+        "database connection pool exhausted"
+      ],
+      "suspected_trigger_keywords_any": [
+        "deployment",
+        "release"
+      ],
+      "causal_strength": "correlated",
+      "acceptable_confidence": [
+        "medium"
+      ],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": [
+        "mitigate",
+        "investigate",
+        "validate"
+      ],
+      "required_keyword_groups": [
+        [
+          "rollback",
+          "roll back"
+        ],
+        [
+          "connection leak",
+          "slow query",
+          "transaction"
+        ]
+      ],
+      "forbidden_keywords": [
+        "increase pool size immediately"
+      ]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-db-connections",
+        "source_id": "metric-rca-001",
+        "name": "db_connections",
+        "value": 95,
+        "unit": "count",
+        "tolerance": 0
+      }
+    ],
+    "temporal_facts": [
+      {
+        "id": "deployment-before-timeout",
+        "left_source_id": "deployment-rca-001",
+        "right_source_id": "log-rca-001-a",
+        "relation": "before",
+        "max_gap_seconds": 7200
+      }
+    ],
+    "causal_language": {
+      "deployment_causality": "correlation_only",
+      "forbidden_phrases": [
+        "deployment definitely caused",
+        "deployment proved to cause"
+      ]
+    },
+    "required_missing_information": [
+      "deployment diff or rollback outcome",
+      "connection usage trend before and after deployment"
+    ],
+    "forbidden_claims": [
+      "external payment provider outage"
+    ]
+  },
+  "notes": "The failure mechanism is well supported, but the deployment is only temporally correlated."
+}
