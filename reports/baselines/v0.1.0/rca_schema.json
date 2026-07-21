@@ -1,0 +1,106 @@
+{
+  "$defs": {
+    "EvidenceItem": {
+      "additionalProperties": false,
+      "properties": {
+        "source_type": {
+          "enum": [
+            "log",
+            "metric",
+            "deployment",
+            "runbook"
+          ],
+          "title": "Source Type",
+          "type": "string"
+        },
+        "source_id": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "excerpt": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Excerpt",
+          "type": "string"
+        },
+        "explanation": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_type",
+        "source_id",
+        "excerpt",
+        "explanation"
+      ],
+      "title": "EvidenceItem",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "incident_summary": {
+      "maxLength": 3000,
+      "minLength": 1,
+      "title": "Incident Summary",
+      "type": "string"
+    },
+    "likely_root_cause": {
+      "maxLength": 3000,
+      "minLength": 1,
+      "title": "Likely Root Cause",
+      "type": "string"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/EvidenceItem"
+      },
+      "maxItems": 20,
+      "minItems": 1,
+      "title": "Evidence",
+      "type": "array"
+    },
+    "recommended_actions": {
+      "description": "A JSON array containing plain strings only. Correct: [\"Roll back the deployment\"]. Never return objects containing description or action fields.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 15,
+      "minItems": 1,
+      "title": "Recommended Actions",
+      "type": "array"
+    },
+    "confidence": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "title": "Confidence",
+      "type": "string"
+    },
+    "missing_information": {
+      "description": "A JSON array containing plain strings only. Correct: [\"Database pool limit is unavailable\"].",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 15,
+      "title": "Missing Information",
+      "type": "array"
+    }
+  },
+  "required": [
+    "incident_summary",
+    "likely_root_cause",
+    "evidence",
+    "recommended_actions",
+    "confidence"
+  ],
+  "title": "RCAReport",
+  "type": "object"
+}

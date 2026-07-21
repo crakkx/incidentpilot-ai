@@ -1,0 +1,13 @@
+{
+  "model": "qwen2.5:3b",
+  "ollama_num_ctx": 8192,
+  "ollama_num_predict": 1800,
+  "ollama_temperature": 0.0,
+  "ollama_seed": 42,
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "embedding_dimensions": 384,
+  "rca_max_logs": 50,
+  "rca_max_metrics": 50,
+  "rca_max_deployments": 20,
+  "rca_runbook_top_k": 5
+}
