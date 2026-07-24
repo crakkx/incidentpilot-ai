@@ -4,11 +4,11 @@ IncidentPilot AI is a local-first incident investigation and root-cause
 analysis backend.
 
 It combines incident data, application logs, deployments, service metrics,
-runbook retrieval, and a local LLM to generate a structured RCA report with
-traceable evidence.
+runbook retrieval, and a selectable LLM provider to generate a structured RCA
+report with traceable evidence.
 
-The project runs without a paid model API. RCA generation uses
-`qwen2.5:3b` through Ollama on Apple Silicon.
+RCA generation supports hosted Mistral models and local Ollama models. The
+provider and model can be selected for each run in the developer dashboard.
 
 ---
 
@@ -82,15 +82,15 @@ flowchart LR
         PostgreSQL + pgvector
     ]
 
-    RCAService --> Ollama[
-        Ollama on macOS
+    RCAService --> LLMProvider[
+        Mistral API or Ollama
     ]
 
-    Ollama --> Qwen[
-        Qwen 2.5 3B
+    LLMProvider --> StructuredOutput[
+        JSON-schema RCA output
     ]
 
-    Qwen --> Validation[
+    StructuredOutput --> Validation[
         Pydantic Validation
         and Evidence-ID Checks
     ]
@@ -141,8 +141,9 @@ only interprets the evidence supplied to it.
 | Vector search | pgvector |
 | Database migrations | Alembic |
 | Embeddings | `sentence-transformers/all-MiniLM-L6-v2` |
-| Local LLM runtime | Ollama |
-| RCA model | `qwen2.5:3b` |
+| LLM providers | Mistral API and Ollama |
+| Default hosted model | `mistral-small-latest` |
+| Default local model | `qwen2.5:3b` |
 | Cache / future jobs | Redis |
 | Containers | Docker and Docker Compose |
 | Testing | pytest and FastAPI TestClient |
@@ -159,7 +160,7 @@ incidentpilot-ai/
 │   ├── core/                # Configuration and logging
 │   ├── db/                  # SQLAlchemy sessions and model registry
 │   ├── evals/               # Retrieval evaluation implementation
-│   ├── llm/                 # Ollama client and prompts
+│   ├── llm/                 # Mistral/Ollama clients and prompts
 │   ├── models/              # SQLAlchemy database models
 │   ├── rag/                 # Chunking, embeddings, vector retrieval
 │   ├── repositories/        # Database query layer
@@ -183,7 +184,8 @@ incidentpilot-ai/
 Install these before running the project:
 
 - Docker Desktop
-- Ollama
+- Ollama, when using local models
+- A Mistral API key, when using hosted models
 - Git
 - `make`
 - `curl`
@@ -208,10 +210,22 @@ cd incidentpilot-ai
 cp .env.example .env
 ~~~
 
-The committed `.env.example` contains development defaults. Real `.env` files
-are not committed.
+The committed `.env.example` contains development defaults. Add your
+`MISTRAL_API_KEY` there to use the hosted provider. Real `.env` files are not
+committed.
 
-### 3. Start Ollama
+### 3. Configure an LLM provider
+
+For Mistral, set the provider and API key in `.env`:
+
+~~~dotenv
+LLM_PROVIDER=mistral
+MISTRAL_API_KEY=your-api-key
+MISTRAL_MODEL=mistral-small-latest
+~~~
+
+For local Ollama, set `LLM_PROVIDER=ollama`, open the Ollama application, and
+ensure the model exists:
 
 Open the Ollama application, then ensure the model exists:
 
@@ -509,10 +523,11 @@ reports/retrieval_eval_latest.md
 
 ## Engineering decisions
 
-### Why local Ollama?
+### Why support both Mistral and Ollama?
 
-The project demonstrates an end-to-end LLM application without depending on a
-paid API. It also keeps incident evidence on the local machine.
+Mistral provides stronger hosted models and strict structured output for the
+full RCA prompt and evidence context. Ollama preserves a fully local option
+when data residency or offline use matters.
 
 ### Why no agent framework yet?
 

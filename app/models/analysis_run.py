@@ -1,5 +1,5 @@
 from datetime import datetime
-
+from sqlalchemy import Integer
 from sqlalchemy import Column, DateTime, ForeignKey, JSON, String, Text
 from sqlalchemy.orm import relationship
 
@@ -80,4 +80,51 @@ class AnalysisRun(Base):
     incident = relationship(
         "Incident",
         back_populates="analysis_runs",
+    )
+
+    progress_stage = Column(
+    String(80),
+    nullable=False,
+    default="queued",
+    )
+
+    progress_message = Column(
+        Text,
+        nullable=True,
+    )
+
+    progress_percent = Column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
+    failure_type = Column(
+        String(80),
+        nullable=True,
+    )
+
+    raw_model_output = Column(
+        Text,
+        nullable=True,
+    )
+
+    validation_errors = Column(
+        JSON,
+        nullable=True,
+    )
+
+    generation_metadata = Column(
+        JSON,
+        nullable=True,
+    )
+
+    generation_attempts = Column(
+        JSON,
+        nullable=True,
+    )
+
+    retrieval_diagnostics = Column(
+        JSON,
+        nullable=True,
     )

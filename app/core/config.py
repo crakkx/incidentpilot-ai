@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,6 +16,9 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     log_level: str = "INFO"
+
+    # LLM provider
+    llm_provider: str = "ollama"
 
     # Retrieval settings
     embedding_model_name: str = (
@@ -32,6 +36,15 @@ class Settings(BaseSettings):
     ollama_temperature: float = 0.0
     ollama_num_predict: int = 1800
     ollama_seed: int = 42
+
+    # Hosted Mistral settings
+    mistral_api_key: SecretStr | None = None
+    mistral_base_url: str = "https://api.mistral.ai"
+    mistral_model: str = "mistral-small-latest"
+    mistral_timeout_seconds: float = 240.0
+    mistral_temperature: float = 0.0
+    mistral_max_tokens: int = 1800
+    mistral_random_seed: int = 42
 
     # Limit the evidence sent to the small local model
     rca_max_logs: int = 20

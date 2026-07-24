@@ -5,6 +5,7 @@ from sqlalchemy import select
 from app.llm.client import (
     InvalidRCAOutputError,
     RCAClient,
+    RCAGenerationResult,
     get_rca_client,
 )
 from app.main import app
@@ -23,6 +24,48 @@ from app.schemas.analysis import (
     EvidenceItem,
     RCAReport,
 )
+
+
+def test_rca_schema_orders_evidence_before_claims():
+    report_properties = list(
+        RCAReport.model_json_schema()["properties"]
+    )
+    evidence_ref = RCAReport.model_json_schema()[
+        "$defs"
+    ]["EvidenceItem"]["properties"]
+
+    assert report_properties[:3] == [
+        "evidence",
+        "incident_summary",
+        "likely_root_cause",
+    ]
+    assert list(evidence_ref)[:4] == [
+        "excerpt",
+        "explanation",
+        "source_type",
+        "source_id",
+    ]
+
+
+def test_rca_report_allows_empty_evidence_for_unknowns():
+    report = RCAReport(
+        evidence=[],
+        incident_summary=(
+            "The supplied evidence does not prove "
+            "a specific failure mechanism."
+        ),
+        likely_root_cause="Unknown from supplied evidence.",
+        recommended_actions=[
+            "Collect direct logs and metrics for the incident window."
+        ],
+        confidence="low",
+        missing_information=[
+            "Direct evidence for the failure mechanism is missing."
+        ],
+    )
+
+    assert report.evidence == []
+    assert report.confidence == "low"
 
 
 class FakeRCAClient(RCAClient):
@@ -103,15 +146,84 @@ class InventedEvidenceClient(RCAClient):
             missing_information=[],
         )
 
-
 class InvalidOutputClient(RCAClient):
+    raw_output = """
+{
+  "incident_summary": "Checkout requests are failing.",
+  "likely_root_cause": "The exact cause is unknown.",
+  "evidence": [],
+  "recommended_actions": [
+    {
+      "description": "Inspect application logs"
+    }
+  ],
+  "confidence": "medium",
+  "missing_information": []
+}
+""".strip()
+
+    validation_errors = [
+        {
+            "type": "string_type",
+            "loc": [
+                "recommended_actions",
+                0,
+            ],
+            "msg": (
+                "Input should be a valid string"
+            ),
+            "input": {
+                "description": (
+                    "Inspect application logs"
+                )
+            },
+        }
+    ]
+
+    def _build_error(
+        self,
+    ) -> InvalidRCAOutputError:
+        metadata = {
+            "done_reason": "stop",
+            "prompt_eval_count": 900,
+            "eval_count": 120,
+            "total_duration_ms": 5000.0,
+        }
+
+        attempt = {
+            "attempt": 1,
+            "raw_output": self.raw_output,
+            "metadata": metadata,
+            "validation_errors": (
+                self.validation_errors
+            ),
+        }
+
+        return InvalidRCAOutputError(
+            "Invalid test output.",
+            debug={
+                "attempts": [attempt],
+                "final_raw_output": (
+                    self.raw_output
+                ),
+                "final_metadata": metadata,
+                "final_validation_errors": (
+                    self.validation_errors
+                ),
+            },
+        )
+
     def generate_rca(
         self,
         evidence_payload,
     ) -> RCAReport:
-        raise InvalidRCAOutputError(
-            "Invalid test output."
-        )
+        raise self._build_error()
+
+    def generate_rca_with_debug(
+        self,
+        evidence_payload,
+    ) -> RCAGenerationResult:
+        raise self._build_error()
 
 
 def seed_incident_evidence(db_session):
@@ -407,3 +519,30 @@ def test_invalid_llm_output_marks_run_failed(
 
     assert analysis_run is not None
     assert analysis_run.status == "failed"
+
+    assert (
+        analysis_run.failure_type
+        == "schema_validation"
+    )
+
+    assert (
+        analysis_run.progress_stage
+        == "failed"
+    )
+
+    assert (
+        analysis_run.raw_model_output
+        == InvalidOutputClient.raw_output
+    )
+
+    assert analysis_run.validation_errors
+
+    assert (
+        analysis_run.validation_errors[0][
+            "loc"
+        ]
+        == [
+            "recommended_actions",
+            0,
+        ]
+    )

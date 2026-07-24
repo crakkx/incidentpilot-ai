@@ -1,19 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
-
-
-class DocumentRead(BaseModel):
-    id: str
-    title: str
-    filename: str | None
-    content_type: str | None
-    service_name: str | None
-    document_type: str
-    severity: str | None
-    created_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
+from pydantic import BaseModel
 
 
 class DocumentUploadResponse(BaseModel):

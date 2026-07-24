@@ -9,6 +9,8 @@ services:
       TEST_DATABASE_URL: postgresql+psycopg://incidentpilot:incidentpilot@postgres:5432/incidentpilot_test
       REDIS_URL: redis://redis:6379/0
 
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+
       HF_HOME: /cache/huggingface
       TORCH_HOME: /cache/torch
       SENTENCE_TRANSFORMERS_HOME: /cache/sentence-transformers
@@ -21,6 +23,14 @@ services:
       OLLAMA_TEMPERATURE: 0.0
       OLLAMA_NUM_PREDICT: 1800
       OLLAMA_SEED: 42
+
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
+      MISTRAL_BASE_URL: ${MISTRAL_BASE_URL:-https://api.mistral.ai}
+      MISTRAL_MODEL: ${MISTRAL_MODEL:-mistral-small-latest}
+      MISTRAL_TIMEOUT_SECONDS: ${MISTRAL_TIMEOUT_SECONDS:-240}
+      MISTRAL_TEMPERATURE: ${MISTRAL_TEMPERATURE:-0.0}
+      MISTRAL_MAX_TOKENS: ${MISTRAL_MAX_TOKENS:-1800}
+      MISTRAL_RANDOM_SEED: ${MISTRAL_RANDOM_SEED:-42}
 
       RCA_MAX_LOGS: 50
       RCA_MAX_METRICS: 50

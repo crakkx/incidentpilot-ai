@@ -65,6 +65,16 @@ def normalize_text_list(
 
 
 class EvidenceItem(BaseModel):
+    excerpt: str = Field(
+        min_length=1,
+        max_length=2000,
+    )
+
+    explanation: str = Field(
+        min_length=1,
+        max_length=2000,
+    )
+
     source_type: Literal[
         "log",
         "metric",
@@ -75,16 +85,6 @@ class EvidenceItem(BaseModel):
     source_id: str = Field(
         min_length=1,
         max_length=100,
-    )
-
-    excerpt: str = Field(
-        min_length=1,
-        max_length=2000,
-    )
-
-    explanation: str = Field(
-        min_length=1,
-        max_length=2000,
     )
 
     model_config = ConfigDict(
@@ -123,6 +123,10 @@ class EvidenceItem(BaseModel):
 
 
 class RCAReport(BaseModel):
+    evidence: list[EvidenceItem] = Field(
+        max_length=20,
+    )
+
     incident_summary: str = Field(
         min_length=1,
         max_length=3000,
@@ -131,11 +135,6 @@ class RCAReport(BaseModel):
     likely_root_cause: str = Field(
         min_length=1,
         max_length=3000,
-    )
-
-    evidence: list[EvidenceItem] = Field(
-        min_length=1,
-        max_length=20,
     )
 
     recommended_actions: list[str] = Field(

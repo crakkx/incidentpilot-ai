@@ -9,6 +9,10 @@ from app.core.versions import (
     RCA_SCHEMA_VERSION,
 )
 from app.llm.prompts import RCA_SYSTEM_PROMPT
+from app.llm.client import (
+    default_model_for_provider,
+    normalize_llm_provider,
+)
 from app.rag.chunking import (
     DEFAULT_MAX_WORDS,
     DEFAULT_OVERLAP_WORDS,
@@ -31,21 +35,55 @@ def _stable_json(value: Any) -> str:
     )
 
 
-def build_analysis_run_metadata() -> dict[str, Any]:
+def build_analysis_run_metadata(
+    *,
+    provider: str | None = None,
+    model_name: str | None = None,
+) -> dict[str, Any]:
     schema = RCAReport.model_json_schema()
+    selected_provider = normalize_llm_provider(
+        provider
+    )
+    selected_model = (
+        model_name
+        or default_model_for_provider(
+            selected_provider
+        )
+    )
+
+    if selected_provider == "mistral":
+        llm_config = {
+            "runtime": selected_provider,
+            "model": selected_model,
+            "temperature": (
+                settings.mistral_temperature
+            ),
+            "max_tokens": (
+                settings.mistral_max_tokens
+            ),
+            "random_seed": (
+                settings.mistral_random_seed
+            ),
+        }
+    else:
+        llm_config = {
+            "runtime": selected_provider,
+            "model": selected_model,
+            "temperature": (
+                settings.ollama_temperature
+            ),
+            "num_ctx": settings.ollama_num_ctx,
+            "num_predict": (
+                settings.ollama_num_predict
+            ),
+            "seed": settings.ollama_seed,
+        }
 
     run_config = {
         "pipeline_version": PIPELINE_VERSION,
         "schema_version": RCA_SCHEMA_VERSION,
         "prompt_version": RCA_PROMPT_VERSION,
-        "llm": {
-            "runtime": "ollama",
-            "model": settings.ollama_model,
-            "temperature": settings.ollama_temperature,
-            "num_ctx": settings.ollama_num_ctx,
-            "num_predict": settings.ollama_num_predict,
-            "seed": settings.ollama_seed,
-        },
+        "llm": llm_config,
         "retrieval": {
             "embedding_model": (
                 settings.embedding_model_name

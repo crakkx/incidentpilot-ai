@@ -15,13 +15,40 @@
         Inter,
         ui-sans-serif,
         system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
         sans-serif;
+
+      --page: #0b1020;
+      --panel: #121a2d;
+      --panel-dark: #080d19;
+      --panel-soft: #0d1425;
+      --border: #28324c;
+      --border-strong: #38445f;
+      --text: #e7eaf0;
+      --muted: #9fa9bd;
+      --primary: #315bd8;
+      --primary-soft: #1c2d63;
+      --success: #81dda2;
+      --warning: #f5c96a;
+      --danger: #ff8d8d;
+      --danger-border: #8e3b46;
+      --danger-bg: #2a1218;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    [hidden] {
+      display: none !important;
     }
 
     body {
       margin: 0;
-      background: #0b1020;
-      color: #e7eaf0;
+      background: var(--page);
+      color: var(--text);
     }
 
     header {
@@ -37,11 +64,11 @@
 
     header p {
       margin: 0;
-      color: #9fa9bd;
+      color: var(--muted);
     }
 
     main {
-      max-width: 1400px;
+      max-width: 1480px;
       margin: auto;
       padding: 24px;
     }
@@ -53,28 +80,37 @@
 
     .versions {
       grid-template-columns:
-        repeat(auto-fit, minmax(190px, 1fr));
+        repeat(auto-fit, minmax(170px, 1fr));
     }
 
     .two-column {
       grid-template-columns:
-        repeat(auto-fit, minmax(420px, 1fr));
+        minmax(0, 1.55fr)
+        minmax(340px, 0.8fr);
       margin-top: 16px;
     }
 
     .card {
-      background: #121a2d;
-      border: 1px solid #28324c;
+      min-width: 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
       border-radius: 10px;
       padding: 18px;
     }
 
     .card h2 {
-      margin-top: 0;
+      margin: 0 0 14px;
       font-size: 18px;
     }
 
+    .card h3 {
+      margin: 16px 0 8px;
+      font-size: 15px;
+    }
+
     .label {
+      display: block;
+      margin-top: 14px;
       color: #94a0b8;
       font-size: 12px;
       text-transform: uppercase;
@@ -84,25 +120,31 @@
     .value {
       margin-top: 7px;
       font-weight: 650;
-      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .small {
+      font-size: 12px;
     }
 
     select,
     button {
       width: 100%;
-      box-sizing: border-box;
       margin-top: 9px;
       padding: 11px;
+      border: 1px solid var(--border-strong);
       border-radius: 7px;
-      border: 1px solid #38445f;
-      background: #0d1425;
+      background: var(--panel-soft);
       color: #f2f4f8;
+      font: inherit;
     }
 
     button {
       cursor: pointer;
-      background: #315bd8;
-      border-color: #315bd8;
       font-weight: 650;
     }
 
@@ -111,17 +153,28 @@
       cursor: wait;
     }
 
+    .primary-button {
+      margin-top: 16px;
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
     pre {
       max-height: 620px;
+      margin: 0;
       overflow: auto;
       white-space: pre-wrap;
       word-break: break-word;
-      background: #080d19;
+      background: var(--panel-dark);
       border: 1px solid #27304a;
       border-radius: 8px;
       padding: 14px;
       font-size: 12px;
       line-height: 1.55;
+    }
+
+    code {
+      overflow-wrap: anywhere;
     }
 
     table {
@@ -134,7 +187,7 @@
     td {
       text-align: left;
       padding: 10px;
-      border-bottom: 1px solid #28324c;
+      border-bottom: 1px solid var(--border);
       vertical-align: top;
     }
 
@@ -148,11 +201,189 @@
     }
 
     .error {
-      color: #ff8d8d;
+      color: var(--danger);
     }
 
     .success {
-      color: #81dda2;
+      color: var(--success);
+    }
+
+    .warning {
+      color: var(--warning);
+    }
+
+    .progress-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .progress-shell {
+      width: 100%;
+      height: 12px;
+      margin-top: 8px;
+      overflow: hidden;
+      background: var(--panel-dark);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: var(--primary);
+      transition: width 0.35s ease;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns:
+        repeat(auto-fit, minmax(145px, 1fr));
+      gap: 8px;
+      margin: 14px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .timeline li {
+      padding: 8px 10px;
+      color: var(--muted);
+      background: var(--panel-dark);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 12px;
+    }
+
+    .timeline li.active {
+      color: #ffffff;
+      background: var(--primary-soft);
+      border-color: var(--primary);
+      font-weight: 650;
+    }
+
+    .timeline li.done {
+      color: var(--success);
+      border-color: #326c47;
+    }
+
+    .timeline li.failed {
+      color: var(--danger);
+      background: var(--danger-bg);
+      border-color: var(--danger-border);
+    }
+
+    .run-summary {
+      margin-top: 16px;
+    }
+
+    .tab-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    .tab-button {
+      width: auto;
+      margin-top: 0;
+      padding: 8px 12px;
+      background: var(--panel-soft);
+    }
+
+    .tab-button.active {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .tab-panel {
+      margin-top: 12px;
+    }
+
+    .validation-issue {
+      margin: 10px 0;
+      padding: 12px;
+      border: 1px solid var(--danger-border);
+      background: var(--danger-bg);
+      border-radius: 8px;
+    }
+
+    .validation-path {
+      margin-bottom: 6px;
+      font-family: monospace;
+      color: #ffb3bd;
+    }
+
+    .issue-meta {
+      display: grid;
+      gap: 6px;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+
+    .bad-line {
+      display: block;
+      margin: 0 -8px;
+      padding: 0 8px;
+      background: #441821;
+      border-left: 4px solid #ff6678;
+    }
+
+    .raw-line {
+      display: block;
+      min-height: 1.55em;
+    }
+
+    .retrieval-summary,
+    .generation-summary {
+      margin-bottom: 14px;
+    }
+
+    .retrieval-card,
+    .attempt-card {
+      margin: 10px 0;
+      padding: 12px;
+      background: var(--panel-dark);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .retrieval-card p,
+    .attempt-card p {
+      margin: 7px 0;
+    }
+
+    .score {
+      color: var(--success);
+      font-weight: 700;
+    }
+
+    .metric-card {
+      background: var(--panel-dark);
+    }
+
+    .case-failure {
+      color: var(--danger);
+    }
+
+    .case-success {
+      color: var(--success);
+    }
+
+    .section-space {
+      margin-top: 16px;
+    }
+
+    @media (max-width: 980px) {
+      .two-column {
+        grid-template-columns: 1fr;
+      }
+
+      main {
+        padding: 16px;
+      }
     }
   </style>
 </head>
@@ -161,8 +392,8 @@
   <header>
     <h1>IncidentPilot Developer Console</h1>
     <p>
-      RCA execution, baseline inspection and
-      evaluation dataset visibility.
+      Run RCA analyses, inspect raw model output,
+      debug validation failures, and monitor retrieval quality.
     </p>
   </header>
 
@@ -184,35 +415,203 @@
         </label>
 
         <select id="incidentSelect">
-          <option>Loading incidents...</option>
+          <option value="">
+            Loading incidents...
+          </option>
         </select>
 
-        <button id="runButton">
+        <label
+          class="label"
+          for="providerSelect"
+        >
+          Provider
+        </label>
+
+        <select id="providerSelect">
+          <option value="ollama">
+            Ollama
+          </option>
+          <option value="mistral">
+            Mistral API
+          </option>
+        </select>
+
+        <label
+          class="label"
+          for="modelSelect"
+        >
+          Model
+        </label>
+
+        <select id="modelSelect">
+          <option value="">
+            Loading models...
+          </option>
+        </select>
+
+        <button
+          id="runButton"
+          class="primary-button"
+          type="button"
+        >
           Generate RCA
         </button>
 
         <div
           id="runStatus"
           class="status"
-        ></div>
+        >
+          No analysis running.
+        </div>
 
-        <pre id="rcaOutput">
-No RCA run selected.
-        </pre>
+        <div class="progress-row">
+          <span id="stageName">
+            Waiting to start.
+          </span>
+          <span id="progressPercent">
+            0%
+          </span>
+        </div>
+
+        <div class="progress-shell">
+          <div
+            id="progressBar"
+            class="progress-bar"
+          ></div>
+        </div>
+
+        <ol
+          id="stageTimeline"
+          class="timeline"
+        ></ol>
+
+        <section
+          id="runSummaryCards"
+          class="grid versions run-summary"
+        ></section>
+
+        <div class="tab-buttons">
+          <button
+            type="button"
+            class="tab-button active"
+            data-tab="validatedPanel"
+          >
+            Validated report
+          </button>
+
+          <button
+            type="button"
+            class="tab-button"
+            data-tab="rawPanel"
+          >
+            Raw model output
+          </button>
+
+          <button
+            type="button"
+            class="tab-button"
+            data-tab="issuesPanel"
+          >
+            Validation issues
+          </button>
+
+          <button
+            type="button"
+            class="tab-button"
+            data-tab="retrievalPanel"
+          >
+            Retrieval
+          </button>
+
+          <button
+            type="button"
+            class="tab-button"
+            data-tab="generationPanel"
+          >
+            Generation details
+          </button>
+        </div>
+
+        <section
+          id="validatedPanel"
+          class="tab-panel"
+        >
+          <pre id="validatedOutput">No validated report.</pre>
+        </section>
+
+        <section
+          id="rawPanel"
+          class="tab-panel"
+          hidden
+        >
+          <pre id="rawOutput">No raw model output.</pre>
+        </section>
+
+        <section
+          id="issuesPanel"
+          class="tab-panel"
+          hidden
+        >
+          <div id="issuesOutput">
+            <p class="muted">
+              No validation issues.
+            </p>
+          </div>
+        </section>
+
+        <section
+          id="retrievalPanel"
+          class="tab-panel"
+          hidden
+        >
+          <div id="retrievalOutput">
+            <p class="muted">
+              No retrieval diagnostics.
+            </p>
+          </div>
+        </section>
+
+        <section
+          id="generationPanel"
+          class="tab-panel"
+          hidden
+        >
+          <div id="generationOutput">
+            <p class="muted">
+              No generation metadata.
+            </p>
+          </div>
+        </section>
       </div>
 
       <div class="card">
         <h2>v0.1.0 baseline</h2>
-        <pre id="baselineOutput">
-Loading baseline...
-        </pre>
+        <pre id="baselineOutput">Loading baseline...</pre>
       </div>
     </section>
 
-    <section
-      class="card"
-      style="margin-top: 16px"
-    >
+    <section class="card section-space">
+      <h2>Retrieval evaluation</h2>
+
+      <div
+        id="retrievalMetricsStatus"
+        class="status"
+      >
+        Loading retrieval evaluation...
+      </div>
+
+      <section
+        id="retrievalMetricCards"
+        class="grid versions section-space"
+      ></section>
+
+      <div
+        id="retrievalCaseResults"
+        class="section-space"
+      ></div>
+    </section>
+
+    <section class="card section-space">
       <h2>RCA evaluation dataset</h2>
 
       <div
@@ -220,7 +619,10 @@ Loading baseline...
         class="status"
       ></div>
 
-      <div style="overflow-x: auto">
+      <div
+        class="section-space"
+        style="overflow-x: auto"
+      >
         <table>
           <thead>
             <tr>
@@ -239,8 +641,76 @@ Loading baseline...
   </main>
 
   <script>
+    const POLL_INTERVAL_MS = 1000;
+    const MAX_POLL_ATTEMPTS = 600;
+
+    let pollHandle = null;
+    let pollAttempts = 0;
+    let activeAnalysisRunId = null;
+
+    const analysisStages = [
+      ["queued", "Queued"],
+      ["loading_incident", "Load incident"],
+      ["collecting_logs", "Collect logs"],
+      ["collecting_metrics", "Collect metrics"],
+      ["collecting_deployments", "Collect deployments"],
+      ["retrieving_runbooks", "Retrieve runbooks"],
+      ["building_prompt", "Build prompt"],
+      ["generating_rca", "Generate RCA"],
+      ["validating_schema", "Validate schema"],
+      ["validating_evidence", "Validate evidence"],
+      ["persisting_result", "Save report"],
+      ["completed", "Completed"]
+    ];
+
     const pretty = value =>
       JSON.stringify(value, null, 2);
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function formatNumber(
+      value,
+      digits = 2
+    ) {
+      const number = Number(value);
+
+      if (!Number.isFinite(number)) {
+        return "n/a";
+      }
+
+      return number.toFixed(digits);
+    }
+
+    function formatRatio(value) {
+      const number = Number(value);
+
+      if (!Number.isFinite(number)) {
+        return "n/a";
+      }
+
+      if (number >= 0 && number <= 1) {
+        return `${(number * 100).toFixed(1)}%`;
+      }
+
+      return number.toFixed(3);
+    }
+
+    function formatMilliseconds(value) {
+      const number = Number(value);
+
+      if (!Number.isFinite(number)) {
+        return "n/a";
+      }
+
+      return `${number.toFixed(2)} ms`;
+    }
 
     async function requestJson(
       url,
@@ -251,15 +721,53 @@ Loading baseline...
         options
       );
 
-      const body = await response.json();
+      const rawBody = await response.text();
+
+      let body = {};
+
+      if (rawBody) {
+        try {
+          body = JSON.parse(rawBody);
+        } catch {
+          body = {
+            detail: rawBody
+          };
+        }
+      }
 
       if (!response.ok) {
-        throw new Error(
-          body.detail || pretty(body)
-        );
+        const detail =
+          body.detail
+          || body.message
+          || pretty(body)
+          || `HTTP ${response.status}`;
+
+        throw new Error(detail);
       }
 
       return body;
+    }
+
+    function renderInfoCards(
+      containerId,
+      cards
+    ) {
+      document.getElementById(
+        containerId
+      ).innerHTML = cards.map(
+        ([label, value]) => `
+          <div class="card metric-card">
+            <div class="label">
+              ${escapeHtml(label)}
+            </div>
+            <div class="value">
+              ${escapeHtml(
+                value ?? "n/a"
+              )}
+            </div>
+          </div>
+        `
+      ).join("");
     }
 
     async function loadMetadata() {
@@ -267,45 +775,56 @@ Loading baseline...
         "/dev/api/meta"
       );
 
-      const config = metadata.run_config;
+      const config =
+        metadata.run_config || {};
 
-      const cards = [
+      const llm = config.llm || {};
+      const retrieval =
+        config.retrieval || {};
+
+      renderInfoCards(
+        "versionCards",
         [
-          "Pipeline",
-          metadata.pipeline_version
-        ],
-        [
-          "Schema",
-          metadata.schema_version
-        ],
-        [
-          "Prompt",
-          metadata.prompt_version
-        ],
-        [
-          "LLM",
-          config.llm.model
-        ],
-        [
-          "Embedding",
-          config.retrieval.embedding_model
-        ],
-        [
-          "Top K",
-          config.retrieval.runbook_top_k
+          [
+            "Pipeline",
+            metadata.pipeline_version
+          ],
+          [
+            "Schema",
+            metadata.schema_version
+          ],
+          [
+            "Prompt",
+            metadata.prompt_version
+          ],
+          [
+            "Default LLM",
+            `${
+              llm.runtime || "ollama"
+            } / ${llm.model || "n/a"}`
+          ],
+          [
+            "Embedding",
+            retrieval.embedding_model
+          ],
+          [
+            "Runbook top K",
+            retrieval.runbook_top_k
+          ]
         ]
-      ];
+      );
 
-      document.getElementById(
-        "versionCards"
-      ).innerHTML = cards.map(
-        ([label, value]) => `
-          <div class="card">
-            <div class="label">${label}</div>
-            <div class="value">${value}</div>
-          </div>
-        `
-      ).join("");
+      const providerSelect =
+        document.getElementById(
+          "providerSelect"
+        );
+
+      providerSelect.value =
+        llm.runtime || "ollama";
+
+      await loadModels(
+        providerSelect.value
+      );
     }
 
     async function loadIncidents() {
@@ -318,19 +837,102 @@ Loading baseline...
       );
 
       if (!incidents.length) {
-        select.innerHTML =
-          "<option value=''>No incidents available</option>";
+        select.innerHTML = `
+          <option value="">
+            No incidents available
+          </option>
+        `;
         return;
       }
 
       select.innerHTML = incidents.map(
         incident => `
-          <option value="${incident.id}">
-            ${incident.service_name || "unknown"}
-            — ${incident.title}
+          <option value="${
+            escapeHtml(incident.id)
+          }">
+            ${
+              escapeHtml(
+                incident.service_name
+                || "unknown service"
+              )
+            }
+            — ${escapeHtml(incident.title)}
           </option>
         `
       ).join("");
+    }
+
+    async function loadModels(
+      providerName = null
+    ) {
+      const providerSelect =
+        document.getElementById(
+          "providerSelect"
+        );
+
+      const provider =
+        providerName
+        || providerSelect.value;
+
+      const select = document.getElementById(
+        "modelSelect"
+      );
+
+      select.disabled = true;
+      select.innerHTML = `
+        <option value="">
+          Loading ${escapeHtml(provider)} models...
+        </option>
+      `;
+
+      const response = await requestJson(
+        `/dev/api/llm-models?provider=${
+          encodeURIComponent(provider)
+        }`
+      );
+
+      const models = response.models || [];
+
+      if (!response.configured) {
+        select.innerHTML = `
+          <option value="">
+            ${escapeHtml(
+              response.message
+              || "Provider is not configured"
+            )}
+          </option>
+        `;
+        select.disabled = true;
+        return;
+      }
+
+      if (!models.length) {
+        select.innerHTML = `
+          <option value="">
+            No ${escapeHtml(provider)} models found
+          </option>
+        `;
+        select.disabled = true;
+        return;
+      }
+
+      select.innerHTML = models.map(
+        modelName => `
+          <option
+            value="${escapeHtml(modelName)}"
+            ${
+              modelName
+              === response.default_model
+                ? "selected"
+                : ""
+            }
+          >
+            ${escapeHtml(modelName)}
+          </option>
+        `
+      ).join("");
+
+      select.disabled = false;
     }
 
     async function loadBaseline() {
@@ -348,34 +950,1101 @@ Loading baseline...
         "/dev/api/eval-dataset"
       );
 
+      const cases = dataset.cases || [];
+      const manifest = dataset.manifest || {};
+
       document.getElementById(
         "datasetSummary"
       ).textContent =
-        `${dataset.cases.length} cases · ` +
-        `${dataset.manifest.dataset_version}`;
+        `${cases.length} cases · `
+        + `${manifest.dataset_version || "unknown version"}`;
 
       document.getElementById(
         "datasetRows"
-      ).innerHTML = dataset.cases.map(
+      ).innerHTML = cases.map(
         item => `
           <tr>
-            <td>${item.id}</td>
-            <td>${item.scenario_type}</td>
-            <td>${item.difficulty}</td>
-            <td>${item.service_name}</td>
+            <td>${escapeHtml(item.id)}</td>
             <td>
-              ${item.expected_confidence.join(", ")}
+              ${escapeHtml(item.scenario_type)}
             </td>
-            <td>${item.title}</td>
+            <td>
+              ${escapeHtml(item.difficulty)}
+            </td>
+            <td>
+              ${escapeHtml(item.service_name)}
+            </td>
+            <td>
+              ${escapeHtml(
+                (item.expected_confidence || [])
+                  .join(", ")
+              )}
+            </td>
+            <td>${escapeHtml(item.title)}</td>
           </tr>
         `
       ).join("");
+    }
+
+    function pickMetric(
+      metrics,
+      keys
+    ) {
+      for (const key of keys) {
+        if (
+          metrics[key] !== undefined
+          && metrics[key] !== null
+        ) {
+          return metrics[key];
+        }
+      }
+
+      return null;
+    }
+
+    function renderRetrievalCaseResults(
+      report
+    ) {
+      const rows =
+        report.case_results
+        || report.results
+        || report.cases
+        || [];
+
+      const container = document.getElementById(
+        "retrievalCaseResults"
+      );
+
+      if (!Array.isArray(rows) || !rows.length) {
+        container.innerHTML = `
+          <p class="muted">
+            No per-case retrieval results were found
+            in the latest report.
+          </p>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <h3>Per-case results</h3>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Case</th>
+                <th>First relevant rank</th>
+                <th>Hit@1</th>
+                <th>Hit@3</th>
+                <th>Hit@5</th>
+                <th>Latency</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(item => {
+                const rank =
+                  item.first_relevant_rank
+                  ?? item.rank
+                  ?? null;
+
+                const success =
+                  rank !== null
+                  && rank !== undefined;
+
+                return `
+                  <tr>
+                    <td>
+                      ${escapeHtml(
+                        item.id
+                        || item.case_id
+                        || item.query
+                        || "unknown"
+                      )}
+                    </td>
+                    <td class="${
+                      success
+                        ? "case-success"
+                        : "case-failure"
+                    }">
+                      ${
+                        success
+                          ? escapeHtml(rank)
+                          : "miss"
+                      }
+                    </td>
+                    <td>
+                      ${escapeHtml(
+                        item.hit_at_1
+                        ?? item["hit@1"]
+                        ?? "n/a"
+                      )}
+                    </td>
+                    <td>
+                      ${escapeHtml(
+                        item.hit_at_3
+                        ?? item["hit@3"]
+                        ?? "n/a"
+                      )}
+                    </td>
+                    <td>
+                      ${escapeHtml(
+                        item.hit_at_5
+                        ?? item["hit@5"]
+                        ?? "n/a"
+                      )}
+                    </td>
+                    <td>
+                      ${
+                        item.latency_ms !== undefined
+                          ? escapeHtml(
+                              formatMilliseconds(
+                                item.latency_ms
+                              )
+                            )
+                          : "n/a"
+                      }
+                    </td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    async function loadRetrievalMetrics() {
+      const response = await requestJson(
+        "/dev/api/retrieval-eval"
+      );
+
+      const status = document.getElementById(
+        "retrievalMetricsStatus"
+      );
+
+      if (!response.available) {
+        status.textContent =
+          response.message
+          || "Run `make eval` to generate retrieval metrics.";
+
+        status.className =
+          "status warning";
+
+        document.getElementById(
+          "retrievalMetricCards"
+        ).innerHTML = "";
+
+        document.getElementById(
+          "retrievalCaseResults"
+        ).innerHTML = "";
+
+        return;
+      }
+
+      const report = response.report || {};
+      const metrics = report.metrics || report;
+
+      const hitAt1 = pickMetric(
+        metrics,
+        ["hit_at_1", "hit@1", "hit1"]
+      );
+
+      const hitAt3 = pickMetric(
+        metrics,
+        ["hit_at_3", "hit@3", "hit3"]
+      );
+
+      const hitAt5 = pickMetric(
+        metrics,
+        ["hit_at_5", "hit@5", "hit5"]
+      );
+
+      const mrr = pickMetric(
+        metrics,
+        ["mrr", "mean_reciprocal_rank"]
+      );
+
+      const latency = pickMetric(
+        metrics,
+        [
+          "avg_latency_ms",
+          "average_latency_ms",
+          "latency_ms"
+        ]
+      );
+
+      status.textContent =
+        "Latest labeled retrieval evaluation loaded.";
+
+      status.className =
+        "status success";
+
+      renderInfoCards(
+        "retrievalMetricCards",
+        [
+          ["Hit@1", formatRatio(hitAt1)],
+          ["Hit@3", formatRatio(hitAt3)],
+          ["Hit@5", formatRatio(hitAt5)],
+          ["MRR", formatRatio(mrr)],
+          [
+            "Average latency",
+            formatMilliseconds(latency)
+          ]
+        ]
+      );
+
+      renderRetrievalCaseResults(report);
+    }
+
+    function renderTimeline(
+      currentStage,
+      status
+    ) {
+      let currentIndex =
+        analysisStages.findIndex(
+          ([stage]) =>
+            stage === currentStage
+        );
+
+      if (
+        currentIndex < 0
+        && status === "failed"
+      ) {
+        currentIndex = Math.max(
+          0,
+          analysisStages.length - 2
+        );
+      }
+
+      document.getElementById(
+        "stageTimeline"
+      ).innerHTML = analysisStages.map(
+        ([stage, label], index) => {
+          let className = "";
+
+          if (
+            status === "failed"
+            && index === currentIndex
+          ) {
+            className = "failed";
+          } else if (index < currentIndex) {
+            className = "done";
+          } else if (index === currentIndex) {
+            className = "active";
+          }
+
+          return `
+            <li class="${className}">
+              ${escapeHtml(label)}
+            </li>
+          `;
+        }
+      ).join("");
+    }
+
+    function issuePath(issue) {
+      const location = issue.loc || [];
+
+      return location.reduce(
+        (path, part) => {
+          if (typeof part === "number") {
+            return `${path}[${part}]`;
+          }
+
+          if (!path) {
+            return String(part);
+          }
+
+          return `${path}.${part}`;
+        },
+        ""
+      );
+    }
+
+    function collectPrimitiveStrings(
+      value,
+      output
+    ) {
+      if (
+        value === null
+        || value === undefined
+      ) {
+        return;
+      }
+
+      if (
+        typeof value === "string"
+        || typeof value === "number"
+        || typeof value === "boolean"
+      ) {
+        output.add(String(value));
+        return;
+      }
+
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          collectPrimitiveStrings(
+            item,
+            output
+          );
+        }
+        return;
+      }
+
+      if (typeof value === "object") {
+        for (
+          const [key, item]
+          of Object.entries(value)
+        ) {
+          output.add(`"${key}"`);
+          collectPrimitiveStrings(
+            item,
+            output
+          );
+        }
+      }
+    }
+
+    function issueNeedles(issues) {
+      const needles = new Set();
+
+      for (const issue of issues) {
+        collectPrimitiveStrings(
+          issue.input,
+          needles
+        );
+
+        const location = issue.loc || [];
+
+        for (const part of location) {
+          if (typeof part === "string") {
+            needles.add(`"${part}"`);
+          }
+        }
+      }
+
+      return [...needles]
+        .filter(value => value.length >= 2)
+        .sort(
+          (left, right) =>
+            right.length - left.length
+        );
+    }
+
+    function renderRawOutput(run) {
+      const output = document.getElementById(
+        "rawOutput"
+      );
+
+      const raw =
+        run.raw_model_output || "";
+
+      const issues =
+        run.validation_errors || [];
+
+      if (!raw) {
+        output.textContent =
+          "No raw model output was captured.";
+        return;
+      }
+
+      const needles = issueNeedles(issues);
+
+      output.innerHTML = raw
+        .split("\n")
+        .map((line, index) => {
+          const isBad = needles.some(
+            needle => line.includes(needle)
+          );
+
+          const className = isBad
+            ? "raw-line bad-line"
+            : "raw-line";
+
+          return `
+            <span class="${className}">${
+              String(index + 1)
+                .padStart(3, " ")
+            }  ${escapeHtml(line)}</span>
+          `;
+        })
+        .join("");
+    }
+
+    function renderIssues(run) {
+      const issues =
+        run.validation_errors || [];
+
+      const container = document.getElementById(
+        "issuesOutput"
+      );
+
+      if (!issues.length) {
+        container.innerHTML = `
+          <p class="success">
+            No validation issues.
+          </p>
+        `;
+        return;
+      }
+
+      container.innerHTML = issues.map(
+        issue => {
+          const allowedIds =
+            issue.allowed_source_ids || [];
+
+          return `
+            <div class="validation-issue">
+              <div class="validation-path">
+                ${escapeHtml(
+                  issuePath(issue)
+                  || "unknown path"
+                )}
+              </div>
+
+              <strong>
+                ${escapeHtml(
+                  issue.type
+                  || "validation_error"
+                )}
+              </strong>
+
+              <p>
+                ${escapeHtml(
+                  issue.msg
+                  || "Validation failed."
+                )}
+              </p>
+
+              <div class="issue-meta">
+                <div>
+                  <span class="muted">
+                    Invalid value:
+                  </span>
+                  <pre>${escapeHtml(
+                    pretty(issue.input)
+                  )}</pre>
+                </div>
+
+                ${
+                  issue.source_type
+                    ? `
+                      <div>
+                        <span class="muted">
+                          Source type:
+                        </span>
+                        <code>
+                          ${escapeHtml(
+                            issue.source_type
+                          )}
+                        </code>
+                      </div>
+                    `
+                    : ""
+                }
+
+                ${
+                  allowedIds.length
+                    ? `
+                      <div>
+                        <span class="muted">
+                          Allowed source IDs:
+                        </span>
+                        <pre>${escapeHtml(
+                          pretty(allowedIds)
+                        )}</pre>
+                      </div>
+                    `
+                    : ""
+                }
+              </div>
+            </div>
+          `;
+        }
+      ).join("");
+    }
+
+    function renderRetrieval(run) {
+      const retrieval =
+        run.retrieval_diagnostics;
+
+      const container = document.getElementById(
+        "retrievalOutput"
+      );
+
+      if (!retrieval) {
+        container.innerHTML = `
+          <p class="muted">
+            No retrieval diagnostics were recorded.
+          </p>
+        `;
+        return;
+      }
+
+      const summary =
+        retrieval.score_summary || {};
+
+      const filters =
+        retrieval.filters || {};
+
+      const chunks =
+        retrieval.chunks || [];
+
+      const chunkHtml = chunks.map(
+        chunk => `
+          <div class="retrieval-card">
+            <strong>
+              #${escapeHtml(
+                chunk.rank ?? "?"
+              )}
+              ${escapeHtml(
+                chunk.document_title
+                || "Unknown document"
+              )}
+            </strong>
+
+            <p>
+              Score:
+              <span class="score">
+                ${escapeHtml(
+                  chunk.score !== undefined
+                    ? formatNumber(
+                        chunk.score,
+                        4
+                      )
+                    : "n/a"
+                )}
+              </span>
+            </p>
+
+            <p>
+              Chunk ID:
+              <code>
+                ${escapeHtml(
+                  chunk.chunk_id || "n/a"
+                )}
+              </code>
+            </p>
+
+            <p>
+              Metadata:
+              <code>
+                ${escapeHtml(
+                  pretty(
+                    chunk.metadata || {}
+                  )
+                )}
+              </code>
+            </p>
+
+            <p>
+              ${escapeHtml(
+                chunk.preview || ""
+              )}
+            </p>
+          </div>
+        `
+      ).join("");
+
+      container.innerHTML = `
+        <section
+          class="grid versions retrieval-summary"
+        >
+          <div class="card metric-card">
+            <div class="label">
+              Retrieval latency
+            </div>
+            <div class="value">
+              ${escapeHtml(
+                formatMilliseconds(
+                  retrieval.latency_ms
+                )
+              )}
+            </div>
+          </div>
+
+          <div class="card metric-card">
+            <div class="label">
+              Returned
+            </div>
+            <div class="value">
+              ${escapeHtml(
+                retrieval.returned_count
+                ?? chunks.length
+              )}
+              /
+              ${escapeHtml(
+                retrieval.top_k_requested
+                ?? "n/a"
+              )}
+            </div>
+          </div>
+
+          <div class="card metric-card">
+            <div class="label">
+              Top score
+            </div>
+            <div class="value">
+              ${escapeHtml(
+                summary.top_score !== null
+                && summary.top_score
+                   !== undefined
+                  ? formatNumber(
+                      summary.top_score,
+                      4
+                    )
+                  : "n/a"
+              )}
+            </div>
+          </div>
+
+          <div class="card metric-card">
+            <div class="label">
+              Mean score
+            </div>
+            <div class="value">
+              ${escapeHtml(
+                summary.mean_score !== null
+                && summary.mean_score
+                   !== undefined
+                  ? formatNumber(
+                      summary.mean_score,
+                      4
+                    )
+                  : "n/a"
+              )}
+            </div>
+          </div>
+        </section>
+
+        <h3>Query</h3>
+        <pre>${escapeHtml(
+          retrieval.query || ""
+        )}</pre>
+
+        <h3>Filters</h3>
+        <pre>${escapeHtml(
+          pretty(filters)
+        )}</pre>
+
+        <h3>Ranked chunks</h3>
+        ${
+          chunkHtml
+          || '<p class="warning">No chunks returned.</p>'
+        }
+      `;
+    }
+
+    function renderGeneration(run) {
+      const container = document.getElementById(
+        "generationOutput"
+      );
+
+      const metadata =
+        run.generation_metadata || {};
+
+      const attempts =
+        run.generation_attempts || [];
+
+      if (
+        !Object.keys(metadata).length
+        && !attempts.length
+      ) {
+        container.innerHTML = `
+          <p class="muted">
+            No generation metadata was recorded.
+          </p>
+        `;
+        return;
+      }
+
+      const attemptHtml = attempts.map(
+        attempt => {
+          const errors =
+            attempt.validation_errors || [];
+
+          return `
+            <div class="attempt-card">
+              <strong>
+                Attempt ${
+                  escapeHtml(
+                    attempt.attempt ?? "?"
+                  )
+                }
+              </strong>
+
+              <p>
+                Validation:
+                <span class="${
+                  errors.length
+                    ? "error"
+                    : "success"
+                }">
+                  ${
+                    errors.length
+                      ? `${errors.length} issue(s)`
+                      : "passed"
+                  }
+                </span>
+              </p>
+
+              <h3>Metadata</h3>
+              <pre>${escapeHtml(
+                pretty(
+                  attempt.metadata || {}
+                )
+              )}</pre>
+
+              ${
+                errors.length
+                  ? `
+                    <h3>Validation errors</h3>
+                    <pre>${escapeHtml(
+                      pretty(errors)
+                    )}</pre>
+                  `
+                  : ""
+              }
+            </div>
+          `;
+        }
+      ).join("");
+
+      container.innerHTML = `
+        <section
+          class="grid versions generation-summary"
+        >
+          <div class="card metric-card">
+            <div class="label">
+              Prompt tokens
+            </div>
+            <div class="value">
+              ${escapeHtml(
+                metadata.prompt_eval_count
+                ?? "n/a"
+              )}
+            </div>
+          </div>
+
+          <div class="card metric-card">
+            <div class="label">
+              Generated tokens
+            </div>
+            <div class="value">
+              ${escapeHtml(
+                metadata.eval_count
+                ?? "n/a"
+              )}
+            </div>
+          </div>
+
+          <div class="card metric-card">
+            <div class="label">
+              Total duration
+            </div>
+            <div class="value">
+              ${escapeHtml(
+                formatMilliseconds(
+                  metadata.total_duration_ms
+                )
+              )}
+            </div>
+          </div>
+
+          <div class="card metric-card">
+            <div class="label">
+              Tokens / second
+            </div>
+            <div class="value">
+              ${escapeHtml(
+                metadata.tokens_per_second
+                ?? "n/a"
+              )}
+            </div>
+          </div>
+
+          <div class="card metric-card">
+            <div class="label">
+              Done reason
+            </div>
+            <div class="value">
+              ${escapeHtml(
+                metadata.done_reason
+                ?? "n/a"
+              )}
+            </div>
+          </div>
+        </section>
+
+        <h3>All attempts</h3>
+        ${
+          attemptHtml
+          || '<p class="muted">No attempts recorded.</p>'
+        }
+      `;
+    }
+
+    function renderRunSummary(run) {
+      const metadata =
+        run.generation_metadata || {};
+
+      renderInfoCards(
+        "runSummaryCards",
+        [
+          ["Run ID", run.id],
+          ["Status", run.status],
+          ["Provider", run.provider],
+          ["Model", run.model_name],
+          [
+            "Failure type",
+            run.failure_type || "none"
+          ],
+          [
+            "Prompt tokens",
+            metadata.prompt_eval_count
+            ?? "n/a"
+          ],
+          [
+            "Generated tokens",
+            metadata.eval_count
+            ?? "n/a"
+          ],
+          [
+            "Total duration",
+            formatMilliseconds(
+              metadata.total_duration_ms
+            )
+          ],
+          [
+            "Pipeline",
+            run.pipeline_version
+          ]
+        ]
+      );
+    }
+
+    function renderAnalysisRun(run) {
+      const progress = Math.max(
+        0,
+        Math.min(
+          100,
+          Number(run.progress_percent || 0)
+        )
+      );
+
+      document.getElementById(
+        "progressBar"
+      ).style.width = `${progress}%`;
+
+      document.getElementById(
+        "progressPercent"
+      ).textContent = `${progress}%`;
+
+      document.getElementById(
+        "stageName"
+      ).textContent =
+        run.progress_message
+        || run.progress_stage
+        || run.status;
+
+      renderTimeline(
+        run.progress_stage,
+        run.status
+      );
+
+      renderRunSummary(run);
+      renderRawOutput(run);
+      renderIssues(run);
+      renderRetrieval(run);
+      renderGeneration(run);
+
+      document.getElementById(
+        "validatedOutput"
+      ).textContent = run.report
+        ? pretty(run.report)
+        : "No validated report.";
+
+      const status = document.getElementById(
+        "runStatus"
+      );
+
+      if (run.status === "completed") {
+        status.textContent =
+          "Analysis completed successfully.";
+
+        status.className =
+          "status success";
+      } else if (run.status === "failed") {
+        status.textContent =
+          `${run.failure_type || "analysis_failure"}: `
+          + `${
+            run.progress_message
+            || run.error_message
+            || "Analysis failed."
+          }`;
+
+        status.className =
+          "status error";
+      } else {
+        status.textContent =
+          run.progress_message
+          || "Analysis is running.";
+
+        status.className =
+          "status";
+      }
+    }
+
+    function resetRunPanels() {
+      document.getElementById(
+        "progressBar"
+      ).style.width = "0%";
+
+      document.getElementById(
+        "progressPercent"
+      ).textContent = "0%";
+
+      document.getElementById(
+        "stageName"
+      ).textContent =
+        "Preparing analysis...";
+
+      document.getElementById(
+        "validatedOutput"
+      ).textContent =
+        "Waiting for validated output...";
+
+      document.getElementById(
+        "rawOutput"
+      ).textContent =
+        "Waiting for model output...";
+
+      document.getElementById(
+        "issuesOutput"
+      ).innerHTML = `
+        <p class="muted">
+          No validation result yet.
+        </p>
+      `;
+
+      document.getElementById(
+        "retrievalOutput"
+      ).innerHTML = `
+        <p class="muted">
+          Waiting for retrieval...
+        </p>
+      `;
+
+      document.getElementById(
+        "generationOutput"
+      ).innerHTML = `
+        <p class="muted">
+          Waiting for generation metadata...
+        </p>
+      `;
+
+      document.getElementById(
+        "runSummaryCards"
+      ).innerHTML = "";
+
+      renderTimeline(
+        "queued",
+        "queued"
+      );
+    }
+
+    async function pollAnalysisRun(
+      analysisRunId
+    ) {
+      pollAttempts += 1;
+
+      if (
+        pollAttempts > MAX_POLL_ATTEMPTS
+      ) {
+        document.getElementById(
+          "runButton"
+        ).disabled = false;
+
+        const status =
+          document.getElementById(
+            "runStatus"
+          );
+
+        status.textContent =
+          "Polling timed out after 10 minutes.";
+
+        status.className =
+          "status error";
+
+        return;
+      }
+
+      try {
+        const run = await requestJson(
+          `/dev/api/analysis-runs/${
+            encodeURIComponent(
+              analysisRunId
+            )
+          }`
+        );
+
+        renderAnalysisRun(run);
+
+        if (
+          run.status === "completed"
+          || run.status === "failed"
+        ) {
+          document.getElementById(
+            "runButton"
+          ).disabled = false;
+
+          activeAnalysisRunId = null;
+          pollHandle = null;
+          return;
+        }
+
+        pollHandle = window.setTimeout(
+          () => pollAnalysisRun(
+            analysisRunId
+          ),
+          POLL_INTERVAL_MS
+        );
+      } catch (error) {
+        document.getElementById(
+          "runButton"
+        ).disabled = false;
+
+        const status =
+          document.getElementById(
+            "runStatus"
+          );
+
+        status.textContent =
+          `Could not load analysis status: ${
+            error.message
+          }`;
+
+        status.className =
+          "status error";
+
+        activeAnalysisRunId = null;
+        pollHandle = null;
+      }
     }
 
     async function runRca() {
       const incidentId =
         document.getElementById(
           "incidentSelect"
+        ).value;
+
+      const modelName =
+        document.getElementById(
+          "modelSelect"
+        ).value;
+
+      const provider =
+        document.getElementById(
+          "providerSelect"
         ).value;
 
       const button =
@@ -388,65 +2057,196 @@ Loading baseline...
           "runStatus"
         );
 
-      const output =
-        document.getElementById(
-          "rcaOutput"
-        );
-
       if (!incidentId) {
         status.textContent =
           "Select an incident first.";
-        status.className = "status error";
+
+        status.className =
+          "status error";
         return;
       }
 
+      if (!modelName) {
+        status.textContent =
+          "Select an available model first.";
+
+        status.className =
+          "status error";
+        return;
+      }
+
+      if (pollHandle) {
+        window.clearTimeout(
+          pollHandle
+        );
+      }
+
+      pollAttempts = 0;
+      activeAnalysisRunId = null;
       button.disabled = true;
+
       status.textContent =
-        "Generating RCA with local Qwen...";
-      status.className = "status";
-      output.textContent =
-        "Waiting for analysis...";
+        `Starting ${provider} analysis with ${modelName}...`;
+
+      status.className =
+        "status";
+
+      resetRunPanels();
 
       try {
-        const result = await requestJson(
-          `/incidents/${incidentId}/analyze`,
+        const started = await requestJson(
+          `/dev/api/incidents/${
+            encodeURIComponent(
+              incidentId
+            )
+          }/analysis-runs`,
           {
-            method: "POST"
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
+            body: JSON.stringify({
+              provider,
+              model_name: modelName
+            })
           }
         );
 
-        output.textContent = pretty(result);
-        status.textContent =
-          "Analysis completed.";
-        status.className =
-          "status success";
+        activeAnalysisRunId =
+          started.analysis_run_id;
+
+        await pollAnalysisRun(
+          activeAnalysisRunId
+        );
       } catch (error) {
-        output.textContent =
-          String(error);
+        button.disabled = false;
+
         status.textContent =
-          "Analysis failed.";
+          `Could not start analysis: ${
+            error.message
+          }`;
+
         status.className =
           "status error";
-      } finally {
-        button.disabled = false;
       }
     }
 
-    document.getElementById(
-      "runButton"
-    ).addEventListener(
-      "click",
-      runRca
-    );
+    function activateTab(panelId) {
+      document.querySelectorAll(
+        ".tab-panel"
+      ).forEach(panel => {
+        panel.hidden =
+          panel.id !== panelId;
+      });
 
-    Promise.all([
-      loadMetadata(),
-      loadIncidents(),
-      loadBaseline(),
-      loadDataset()
-    ]).catch(error => {
-      console.error(error);
-    });
+      document.querySelectorAll(
+        ".tab-button"
+      ).forEach(button => {
+        button.classList.toggle(
+          "active",
+          button.dataset.tab === panelId
+        );
+      });
+    }
+
+    function setupTabs() {
+      document.querySelectorAll(
+        ".tab-button"
+      ).forEach(button => {
+        button.addEventListener(
+          "click",
+          () => activateTab(
+            button.dataset.tab
+          )
+        );
+      });
+    }
+
+    function showLoadFailure(
+      label,
+      error
+    ) {
+      console.error(
+        `${label} failed`,
+        error
+      );
+    }
+
+    async function initializeDashboard() {
+      renderTimeline(
+        "queued",
+        "idle"
+      );
+
+      setupTabs();
+
+      document.getElementById(
+        "runButton"
+      ).addEventListener(
+        "click",
+        runRca
+      );
+
+      document.getElementById(
+        "providerSelect"
+      ).addEventListener(
+        "change",
+        () => {
+          loadModels().catch(error => {
+            const select =
+              document.getElementById(
+                "modelSelect"
+              );
+
+            select.innerHTML = `
+              <option value="">
+                Could not load models
+              </option>
+            `;
+            select.disabled = true;
+            showLoadFailure(
+              "models",
+              error
+            );
+          });
+        }
+      );
+
+      const tasks = [
+        ["metadata", loadMetadata],
+        ["incidents", loadIncidents],
+        ["baseline", loadBaseline],
+        ["dataset", loadDataset],
+        [
+          "retrieval evaluation",
+          loadRetrievalMetrics
+        ]
+      ];
+
+      const results =
+        await Promise.allSettled(
+          tasks.map(
+            ([, task]) => task()
+          )
+        );
+
+      results.forEach(
+        (result, index) => {
+          if (
+            result.status
+            === "rejected"
+          ) {
+            showLoadFailure(
+              tasks[index][0],
+              result.reason
+            );
+          }
+        }
+      );
+    }
+
+    initializeDashboard();
   </script>
 </body>
 </html>
