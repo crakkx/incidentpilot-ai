@@ -428,13 +428,11 @@
         </label>
 
         <select id="providerSelect">
-          <option value="ollama">
-            Ollama
-          </option>
-          <option value="mistral">
+          <option value="mistral" selected>
             Mistral API
           </option>
         </select>
+
 
         <label
           class="label"
@@ -619,6 +617,50 @@
         class="status"
       ></div>
 
+      <div style="margin-top: 24px; padding: 20px; background: var(--panel-soft); border: 1px solid var(--border); border-radius: 8px;">
+        <h3 style="margin-top: 0;">Run Offline Evaluations</h3>
+        <p class="muted" style="font-size: 13px; margin-bottom: 16px;">
+          Run the selected evaluation cases (checkboxes below) in the background to compute RCA validation metrics.
+        </p>
+        
+        <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+            <div style="flex: 1;">
+              <label class="label" for="batchProviderSelect" style="margin-top: 0;">Provider</label>
+              <select id="batchProviderSelect">
+                <option value="mistral" selected>Mistral API</option>
+              </select>
+            </div>
+
+            <div style="flex: 1;">
+              <label class="label" for="batchModelSelect" style="margin-top: 0;">Model</label>
+              <select id="batchModelSelect">
+                <option value="">Loading models...</option>
+              </select>
+            </div>
+        </div>
+
+        <button id="runBatchButton" class="primary-button" type="button" style="margin-top: 0;">Run Selected Cases</button>
+        
+        <div id="batchRunStatus" class="status">Ready.</div>
+
+        <div class="progress-row">
+          <span id="batchStageName">Idle.</span>
+          <span id="batchProgressPercent">0%</span>
+        </div>
+
+        <div class="progress-shell">
+          <div id="batchProgressBar" class="progress-bar"></div>
+        </div>
+      </div>
+      
+      <div id="batchResultsContainer" class="section-space"></div>
+
+      <div style="display: flex; align-items: center; gap: 12px; margin-top: 24px;">
+        <button id="selectAllCasesButton" type="button" style="width: auto; margin-top: 0;">Select all</button>
+        <button id="selectNoneCasesButton" type="button" style="width: auto; margin-top: 0;">Select none</button>
+        <span id="caseSelectionCount" class="muted" style="font-size: 13px;"></span>
+      </div>
+
       <div
         class="section-space"
         style="overflow-x: auto"
@@ -626,6 +668,7 @@
         <table>
           <thead>
             <tr>
+              <th></th>
               <th>ID</th>
               <th>Scenario</th>
               <th>Difficulty</th>
@@ -800,7 +843,7 @@
           [
             "Default LLM",
             `${
-              llm.runtime || "ollama"
+              llm.runtime || "mistral"
             } / ${llm.model || "n/a"}`
           ],
           [
@@ -820,7 +863,7 @@
         );
 
       providerSelect.value =
-        llm.runtime || "ollama";
+        llm.runtime || "mistral";
 
       await loadModels(
         providerSelect.value
@@ -964,6 +1007,9 @@
       ).innerHTML = cases.map(
         item => `
           <tr>
+            <td>
+              <input type="checkbox" class="case-checkbox" data-case-id="${escapeHtml(item.id)}" checked>
+            </td>
             <td>${escapeHtml(item.id)}</td>
             <td>
               ${escapeHtml(item.scenario_type)}
@@ -984,6 +1030,27 @@
           </tr>
         `
       ).join("");
+
+      updateCaseSelectionCount();
+    }
+
+    function getAllCaseCheckboxes() {
+      return Array.from(
+        document.querySelectorAll("#datasetRows .case-checkbox")
+      );
+    }
+
+    function getSelectedCaseIds() {
+      return getAllCaseCheckboxes()
+        .filter(box => box.checked)
+        .map(box => box.dataset.caseId);
+    }
+
+    function updateCaseSelectionCount() {
+      const boxes = getAllCaseCheckboxes();
+      const selected = boxes.filter(box => box.checked).length;
+      document.getElementById("caseSelectionCount").textContent =
+        `${selected} of ${boxes.length} cases selected`;
     }
 
     function pickMetric(
@@ -1793,6 +1860,7 @@
           ["Run ID", run.id],
           ["Status", run.status],
           ["Provider", run.provider],
+          ["Pipeline mode", run.pipeline_mode],
           ["Model", run.model_name],
           [
             "Failure type",
@@ -2047,6 +2115,8 @@
           "providerSelect"
         ).value;
 
+      const pipeline = "graph";
+
       const button =
         document.getElementById(
           "runButton"
@@ -2086,7 +2156,7 @@
       button.disabled = true;
 
       status.textContent =
-        `Starting ${provider} analysis with ${modelName}...`;
+        `Starting ${provider} (${pipeline}) analysis with ${modelName}...`;
 
       status.className =
         "status";
@@ -2108,7 +2178,8 @@
             },
             body: JSON.stringify({
               provider,
-              model_name: modelName
+              model_name: modelName,
+              pipeline
             })
           }
         );
@@ -2129,6 +2200,178 @@
 
         status.className =
           "status error";
+      }
+    }
+
+    let batchPollHandle = null;
+
+    async function loadBatchModels(providerName = null) {
+      const providerSelect = document.getElementById("batchProviderSelect");
+      const provider = providerName || providerSelect.value;
+      const select = document.getElementById("batchModelSelect");
+      select.disabled = true;
+      select.innerHTML = `<option value="">Loading ${escapeHtml(provider)} models...</option>`;
+
+      const response = await requestJson(`/dev/api/llm-models?provider=${encodeURIComponent(provider)}`);
+      const models = response.models || [];
+      if (!response.configured) {
+        select.innerHTML = `<option value="">${escapeHtml(response.message || "Provider is not configured")}</option>`;
+        select.disabled = true;
+        return;
+      }
+      if (!models.length) {
+        select.innerHTML = `<option value="">No ${escapeHtml(provider)} models found</option>`;
+        select.disabled = true;
+        return;
+      }
+      select.innerHTML = models.map(modelName => `<option value="${escapeHtml(modelName)}" ${modelName === response.default_model ? "selected" : ""}>${escapeHtml(modelName)}</option>`).join("");
+      select.disabled = false;
+    }
+
+    async function pollBatchStatus() {
+      try {
+        const state = await requestJson("/dev/api/eval-dataset/status");
+        
+        const progress = state.total_cases > 0 ? (state.completed_cases / state.total_cases) * 100 : 0;
+        document.getElementById("batchProgressBar").style.width = `${progress}%`;
+        document.getElementById("batchProgressPercent").textContent = `${Math.round(progress)}%`;
+        
+        if (state.error) {
+           document.getElementById("batchRunStatus").textContent = "Error: " + state.error;
+           document.getElementById("batchRunStatus").className = "status error";
+           document.getElementById("runBatchButton").disabled = false;
+           return;
+        }
+
+        if (state.is_running) {
+           document.getElementById("batchRunStatus").textContent = `Running case ${state.completed_cases + 1} of ${state.total_cases}...`;
+           document.getElementById("batchRunStatus").className = "status";
+           document.getElementById("batchStageName").textContent = state.current_case_title || "Running...";
+           batchPollHandle = window.setTimeout(pollBatchStatus, 1500);
+        } else if (state.total_cases > 0) {
+           document.getElementById("batchRunStatus").textContent = "Evaluation complete!";
+           document.getElementById("batchRunStatus").className = "status success";
+           document.getElementById("batchStageName").textContent = "Finished.";
+           document.getElementById("runBatchButton").disabled = false;
+           renderBatchReport();
+        }
+      } catch (e) {
+        document.getElementById("batchRunStatus").textContent = "Could not check status: " + e.message;
+        document.getElementById("batchRunStatus").className = "status error";
+        document.getElementById("runBatchButton").disabled = false;
+      }
+    }
+
+    async function renderBatchReport() {
+        try {
+            const report = await requestJson("/dev/api/eval-dataset/latest-report");
+            const container = document.getElementById("batchResultsContainer");
+            const casesHtml = report.cases.map(c => {
+                let issuesHtml = "";
+                if (c.status === "failed" && c.dimensions) {
+                    const failedDims = c.dimensions.filter(d => !d.passed);
+                    issuesHtml = failedDims.map(d => {
+                        return `<div style="margin-top: 4px; font-size: 12px; color: var(--danger);">
+                            <strong>${escapeHtml(d.dimension)}</strong>: 
+                            ${d.issues ? d.issues.map(i => escapeHtml(i)).join(", ") : "Failed"}
+                        </div>`;
+                    }).join("");
+                    
+                    if (c.error) {
+                       issuesHtml += `<div style="margin-top: 4px; font-size: 12px; color: var(--danger);"><strong>Error</strong>: ${escapeHtml(c.error)}</div>`;
+                    }
+                    
+                    issuesHtml = `<div style="margin-top: 8px; padding-left: 8px; border-left: 2px solid var(--danger-border);">${issuesHtml}</div>`;
+                }
+                
+                return `<tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 12px 10px; vertical-align: top;">${escapeHtml(c.case_id)}</td>
+                    <td class="${c.status === 'passed' ? 'case-success' : 'case-failure'}" style="padding: 12px 10px; vertical-align: top;">
+                        ${escapeHtml(c.status)}
+                        ${issuesHtml}
+                    </td>
+                    <td style="padding: 12px 10px; vertical-align: top;">${escapeHtml(formatNumber(c.overall_score))}</td>
+                </tr>`;
+            }).join("");
+
+            container.innerHTML = `
+                <h3>Latest Evaluation Report</h3>
+                <div class="grid versions" style="margin-bottom: 16px;">
+                  <div class="card metric-card">
+                    <div class="label">Pipeline</div>
+
+                  </div>
+                  <div class="card metric-card">
+                    <div class="label">Overall Score</div>
+                    <div class="value score">${escapeHtml(formatNumber(report.metrics.overall_score))}</div>
+                  </div>
+                  <div class="card metric-card">
+                    <div class="label">Pass Rate</div>
+                    <div class="value">${escapeHtml(formatRatio(report.metrics.pass_rate))}</div>
+                  </div>
+                </div>
+                <div style="overflow-x: auto;">
+                  <table style="width: 100%; border-collapse: collapse;">
+                     <thead>
+                       <tr>
+                         <th style="text-align: left; padding: 10px; color: #aeb7ca; border-bottom: 1px solid var(--border);">Case ID</th>
+                         <th style="text-align: left; padding: 10px; color: #aeb7ca; border-bottom: 1px solid var(--border);">Status & Issues</th>
+                         <th style="text-align: left; padding: 10px; color: #aeb7ca; border-bottom: 1px solid var(--border);">Score</th>
+                       </tr>
+                     </thead>
+                     <tbody>${casesHtml}</tbody>
+                  </table>
+                </div>
+            `;
+        } catch (e) {
+            document.getElementById("batchResultsContainer").innerHTML = `<p class="error">Could not load report: ${e.message}</p>`;
+        }
+    }
+
+    async function runBatchEvals() {
+      const provider = document.getElementById("batchProviderSelect").value;
+      const pipeline = "graph";
+      const model = document.getElementById("batchModelSelect").value;
+      const button = document.getElementById("runBatchButton");
+      const status = document.getElementById("batchRunStatus");
+
+      if (!model) {
+         status.textContent = "Please select a model.";
+         status.className = "status error";
+         return;
+      }
+
+      const allBoxes = getAllCaseCheckboxes();
+      const selectedIds = getSelectedCaseIds();
+
+      if (selectedIds.length === 0) {
+         status.textContent = "Please select at least one case.";
+         status.className = "status error";
+         return;
+      }
+
+      // Sending null when every case is selected keeps the request
+      // equivalent to "run all", even if the dataset grows later.
+      const caseIds = selectedIds.length === allBoxes.length ? null : selectedIds;
+
+      button.disabled = true;
+      status.textContent = `Starting evaluation on ${selectedIds.length} of ${allBoxes.length} case(s)...`;
+      status.className = "status";
+      document.getElementById("batchProgressBar").style.width = "0%";
+      document.getElementById("batchProgressPercent").textContent = "0%";
+      document.getElementById("batchResultsContainer").innerHTML = "";
+
+      try {
+         await requestJson("/dev/api/eval-dataset/run", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ provider, model_name: model, pipeline, case_ids: caseIds })
+         });
+         pollBatchStatus();
+      } catch (e) {
+         status.textContent = "Could not start: " + e.message;
+         status.className = "status error";
+         button.disabled = false;
       }
     }
 
@@ -2213,6 +2456,61 @@
         }
       );
 
+      document.getElementById(
+        "runBatchButton"
+      ).addEventListener(
+        "click",
+        runBatchEvals
+      );
+
+      document.getElementById(
+        "batchProviderSelect"
+      ).addEventListener(
+        "change",
+        () => {
+          loadBatchModels().catch(error => {
+            const select = document.getElementById("batchModelSelect");
+            select.innerHTML = `<option value="">Could not load models</option>`;
+            select.disabled = true;
+            showLoadFailure("batch models", error);
+          });
+        }
+      );
+
+      document.getElementById(
+        "selectAllCasesButton"
+      ).addEventListener("click", () => {
+        getAllCaseCheckboxes().forEach(box => { box.checked = true; });
+        updateCaseSelectionCount();
+      });
+
+      document.getElementById(
+        "selectNoneCasesButton"
+      ).addEventListener("click", () => {
+        getAllCaseCheckboxes().forEach(box => { box.checked = false; });
+        updateCaseSelectionCount();
+      });
+
+      document.getElementById(
+        "datasetRows"
+      ).addEventListener("change", (event) => {
+        if (event.target.classList.contains("case-checkbox")) {
+          updateCaseSelectionCount();
+        }
+      });
+
+      // Check if a batch eval is already running and resume polling
+      requestJson("/dev/api/eval-dataset/status")
+        .then(state => {
+           if (state.is_running) {
+              document.getElementById("runBatchButton").disabled = true;
+              pollBatchStatus();
+           } else if (state.total_cases > 0) {
+              renderBatchReport();
+           }
+        })
+        .catch(() => {});
+
       const tasks = [
         ["metadata", loadMetadata],
         ["incidents", loadIncidents],
@@ -2221,7 +2519,8 @@
         [
           "retrieval evaluation",
           loadRetrievalMetrics
-        ]
+        ],
+        ["batch models", loadBatchModels]
       ];
 
       const results =

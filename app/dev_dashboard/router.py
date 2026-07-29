@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse
 from app.evals.rca_dataset import (
     load_rca_eval_dataset,
 )
+from app.evals.rca_eval_runner import run_rca_evals
 from app.services.analysis_metadata import (
     build_analysis_run_metadata,
 )
@@ -37,10 +38,61 @@ from pydantic import BaseModel
 
 class StartAnalysisRequest(BaseModel):
     provider: Literal[
-        "ollama",
         "mistral",
     ] | None = None
     model_name: str | None = None
+    pipeline: Literal["graph"] | None = None
+
+
+class StartBatchEvalRequest(BaseModel):
+    provider: Literal[
+        "mistral",
+    ] = "mistral"
+    model_name: str | None = None
+    pipeline: Literal["graph"] = "graph"
+    case_ids: list[str] | None = None
+
+
+BATCH_EVAL_STATE = {
+    "is_running": False,
+    "completed_cases": 0,
+    "total_cases": 0,
+    "current_case_title": None,
+    "error": None,
+}
+
+
+def _run_batch_eval_job(
+    provider: str,
+    model_name: str | None,
+    pipeline: str = "graph",
+    case_ids: list[str] | None = None,
+):
+    global BATCH_EVAL_STATE
+    BATCH_EVAL_STATE["is_running"] = True
+    BATCH_EVAL_STATE["completed_cases"] = 0
+    BATCH_EVAL_STATE["total_cases"] = 0
+    BATCH_EVAL_STATE["current_case_title"] = None
+    BATCH_EVAL_STATE["error"] = None
+
+    def on_progress(current: int, total: int, title: str):
+        BATCH_EVAL_STATE["completed_cases"] = current
+        BATCH_EVAL_STATE["total_cases"] = total
+        BATCH_EVAL_STATE["current_case_title"] = title
+
+    try:
+        run_rca_evals(
+            provider=provider,
+            model_name=model_name,
+            pipeline=pipeline,
+            case_ids=case_ids,
+            progress_callback=on_progress,
+            verbose=False,
+        )
+    except Exception as e:
+        BATCH_EVAL_STATE["error"] = str(e)
+    finally:
+        BATCH_EVAL_STATE["is_running"] = False
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -165,6 +217,49 @@ def evaluation_dataset() -> dict[str, Any]:
     }
 
 
+@router.post("/api/eval-dataset/run", status_code=202)
+def start_batch_eval(
+    payload: StartBatchEvalRequest,
+    background_tasks: BackgroundTasks,
+):
+    global BATCH_EVAL_STATE
+    if BATCH_EVAL_STATE["is_running"]:
+        raise HTTPException(
+            status_code=409,
+            detail="A batch evaluation is already running.",
+        )
+    
+    background_tasks.add_task(
+        _run_batch_eval_job,
+        payload.provider,
+        payload.model_name,
+        payload.pipeline,
+        payload.case_ids,
+    )
+
+    return {"status": "accepted"}
+
+
+@router.get("/api/eval-dataset/status")
+def batch_eval_status():
+    global BATCH_EVAL_STATE
+    return BATCH_EVAL_STATE
+
+
+@router.get("/api/eval-dataset/latest-report")
+def latest_eval_report():
+    report_path = PROJECT_ROOT / "reports" / "rca_eval_latest.json"
+    report = _read_json(report_path)
+    if not report:
+        raise HTTPException(
+            status_code=404,
+            detail="No report found.",
+        )
+    return report
+
+
+
+
 @router.get("/api/baseline")
 def baseline() -> dict[str, Any]:
     generation_config = _read_json(
@@ -215,6 +310,7 @@ def start_analysis_run(
         incident_id=incident_id,
         provider=payload.provider,
         model_name=payload.model_name,
+        pipeline=payload.pipeline,
     )
 
     background_tasks.add_task(
@@ -260,7 +356,12 @@ def analysis_run_detail(
         "provider": (
             (analysis_run.run_config or {})
             .get("llm", {})
-            .get("runtime", "ollama")
+            .get("runtime", "mistral")
+        ),
+        "pipeline_mode": (
+            (analysis_run.run_config or {})
+            .get("llm", {})
+            .get("pipeline_mode", "graph")
         ),
         "progress_stage": (
             analysis_run.progress_stage
@@ -327,7 +428,6 @@ def _mistral_api_key() -> str:
 @router.get("/api/llm-models")
 def llm_models(
     provider: Literal[
-        "ollama",
         "mistral",
     ],
 ):
@@ -335,40 +435,30 @@ def llm_models(
         provider
     )
 
-    if selected_provider == "mistral":
-        api_key = _mistral_api_key()
+    api_key = _mistral_api_key()
 
-        if not api_key:
-            return {
-                "provider": selected_provider,
-                "configured": False,
-                "default_model": (
-                    settings.mistral_model
-                ),
-                "models": [],
-                "message": (
-                    "Set MISTRAL_API_KEY to use "
-                    "the Mistral provider."
-                ),
-            }
-
-        url = (
-            settings.mistral_base_url
-            .rstrip("/")
-            + "/v1/models"
-        )
-        headers = {
-            "Authorization": (
-                f"Bearer {api_key}"
-            )
+    if not api_key:
+        return {
+            "provider": selected_provider,
+            "configured": False,
+            "default_model": settings.mistral_model,
+            "models": [],
+            "message": (
+                "Set MISTRAL_API_KEY to use "
+                "the Mistral provider."
+            ),
         }
-    else:
-        url = (
-            settings.ollama_base_url
-            .rstrip("/")
-            + "/api/tags"
+
+    url = (
+        settings.mistral_base_url
+        .rstrip("/")
+        + "/v1/models"
+    )
+    headers = {
+        "Authorization": (
+            f"Bearer {api_key}"
         )
-        headers = None
+    }
 
     try:
         response = httpx.get(
@@ -385,46 +475,36 @@ def llm_models(
         raise HTTPException(
             status_code=503,
             detail=(
-                f"Could not list {selected_provider} "
+                f"Could not list Mistral "
                 f"models: {exc}"
             ),
         ) from exc
 
-    if selected_provider == "mistral":
-        model_records = (
-            payload.get("data", [])
-            if isinstance(payload, dict)
-            else payload
-        )
-        model_names = sorted(
-            model["id"]
-            for model in model_records
-            if (
-                model.get("id")
-                and not model.get(
-                    "archived",
-                    False,
-                )
-                and (
-                    model.get(
-                        "capabilities",
-                        {},
-                    ).get(
-                        "completion_chat",
-                        True,
-                    )
+    model_records = (
+        payload.get("data", [])
+        if isinstance(payload, dict)
+        else payload
+    )
+    model_names = sorted(
+        model["id"]
+        for model in model_records
+        if (
+            model.get("id")
+            and not model.get(
+                "archived",
+                False,
+            )
+            and (
+                model.get(
+                    "capabilities",
+                    {},
+                ).get(
+                    "completion_chat",
+                    True,
                 )
             )
         )
-    else:
-        model_names = sorted(
-            model["name"]
-            for model in payload.get(
-                "models",
-                [],
-            )
-            if model.get("name")
-        )
+    )
 
     return {
         "provider": selected_provider,
@@ -436,8 +516,3 @@ def llm_models(
         ),
         "models": model_names,
     }
-
-
-@router.get("/api/ollama-models")
-def ollama_models():
-    return llm_models("ollama")

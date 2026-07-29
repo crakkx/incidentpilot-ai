@@ -1,0 +1,163 @@
+{
+  "id": "rca-025",
+  "title": "PVC quota exceeded with unrelated HTTP 404 errors as noise",
+  "scenario_type": "noisy_evidence",
+  "difficulty": "hard",
+  "tags": ["noisy-evidence", "pvc", "storage", "quota", "unrelated-errors"],
+  "incident": {
+    "id": "incident-rca-025",
+    "title": "Media-service write failures and storage quota exhausted",
+    "description": "The media-service began failing on media file writes. The evidence includes the real cause (PVC quota exceeded) alongside unrelated HTTP 404 errors from a different service sharing the log stream.",
+    "service_name": "media-service",
+    "severity": "high",
+    "started_at": "2026-07-26T20:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-rca-025-noise-1",
+      "source_type": "log",
+      "timestamp": "2026-07-26T19:55:00Z",
+      "content": "thumbnail-service: GET /thumbnail/missing-id returned HTTP 404 Not Found",
+      "data": {
+        "level": "WARNING",
+        "service": "thumbnail-service",
+        "status_code": 404,
+        "resource": "missing-id"
+      }
+    },
+    {
+      "id": "metric-rca-025",
+      "source_type": "metric",
+      "timestamp": "2026-07-26T20:00:00Z",
+      "content": "pvc_storage_usage_percent = 95 on media-pvc",
+      "data": {
+        "metric_name": "pvc_storage_usage_percent",
+        "value": 95,
+        "unit": "percent",
+        "pvc": "media-pvc"
+      }
+    },
+    {
+      "id": "log-rca-025-a",
+      "source_type": "log",
+      "timestamp": "2026-07-26T20:00:30Z",
+      "content": "PVC quota exceeded: media-pvc at 95% capacity; write blocked",
+      "data": {
+        "level": "ERROR",
+        "event": "pvc_quota_exceeded",
+        "pvc": "media-pvc",
+        "usage_percent": 95
+      }
+    },
+    {
+      "id": "log-rca-025-noise-2",
+      "source_type": "log",
+      "timestamp": "2026-07-26T20:01:00Z",
+      "content": "thumbnail-service: GET /thumbnail/missing-id-2 returned HTTP 404 Not Found",
+      "data": {
+        "level": "WARNING",
+        "service": "thumbnail-service",
+        "status_code": 404,
+        "resource": "missing-id-2"
+      }
+    },
+    {
+      "id": "log-rca-025-b",
+      "source_type": "log",
+      "timestamp": "2026-07-26T20:01:30Z",
+      "content": "media write failed: no space left on device /mnt/media-pvc",
+      "data": {
+        "level": "ERROR",
+        "errno": "ENOSPC",
+        "path": "/mnt/media-pvc"
+      }
+    },
+    {
+      "id": "runbook-rca-025",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "PVC quota exhaustion blocks all writes to the affected mount. Archive or delete old media files to free space. HTTP 404 errors from other services sharing the log stream are unrelated and should not be investigated as a cause of write failures.",
+      "data": {
+        "document_title": "Media Storage Quota Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-pvc-quota",
+        "concept": "media-pvc storage reached 95% capacity, causing write operations to be blocked.",
+        "acceptable_source_ids": ["metric-rca-025", "log-rca-025-a"],
+        "keywords_any": ["pvc quota", "95", "media-pvc", "write blocked"],
+        "required": true
+      },
+      {
+        "id": "observation-write-failure",
+        "concept": "Write operations to /mnt/media-pvc failed with ENOSPC (no space left on device).",
+        "acceptable_source_ids": ["log-rca-025-b"],
+        "keywords_any": ["no space left", "enospc", "/mnt/media-pvc", "write failed"],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "pvc quota",
+        "storage quota exceeded",
+        "no space left",
+        "storage exhaustion"
+      ],
+      "suspected_trigger_keywords_any": ["media growth", "storage limit", "archive"],
+      "causal_strength": "confirmed",
+      "acceptable_confidence": ["high"],
+      "must_distinguish_mechanism_and_trigger": false
+    },
+    "actions": {
+      "required_categories": ["mitigate", "prevent"],
+      "required_keyword_groups": [
+        ["archive", "delete old media", "free space"],
+        ["pvc size", "expand pvc", "storage alert"]
+      ],
+      "forbidden_keywords": [
+        "http 404 caused",
+        "thumbnail-service caused",
+        "404 errors are related"
+      ]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-pvc-usage",
+        "source_id": "metric-rca-025",
+        "name": "pvc_storage_usage_percent",
+        "value": 95,
+        "unit": "percent",
+        "tolerance": 0
+      }
+    ],
+    "temporal_facts": [
+      {
+        "id": "quota-before-write-fail",
+        "left_source_id": "log-rca-025-a",
+        "right_source_id": "log-rca-025-b",
+        "relation": "before",
+        "max_gap_seconds": 120
+      }
+    ],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": [
+        "http 404 caused write failures",
+        "thumbnail service caused the media failure"
+      ]
+    },
+    "required_missing_information": [
+      "breakdown of storage usage by media type",
+      "media file retention policy"
+    ],
+    "forbidden_claims": [
+      "HTTP 404 errors caused media write failures",
+      "thumbnail-service caused the storage quota issue",
+      "database failure caused write failures"
+    ]
+  },
+  "notes": "Two HTTP 404 logs from thumbnail-service are noise from a different service sharing the stream. Model must attribute write failures to PVC quota, not to 404s."
+}

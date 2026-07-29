@@ -1,0 +1,95 @@
+{
+  "id": "rca-035-noisy-network-scans",
+  "title": "High latency caused by bad query, hidden in 404 noise",
+  "scenario_type": "noisy_evidence",
+  "difficulty": "hard",
+  "tags": [
+    "noise",
+    "latency"
+  ],
+  "incident": {
+    "id": "inc-rca-035-noisy-network-scans",
+    "title": "High latency caused by bad query, hidden in 404 noise",
+    "description": "API latency is extremely high.",
+    "service_name": "api-service",
+    "severity": "SEV-2",
+    "started_at": "2026-07-20T14:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-035-a",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "HTTP 404 /wp-admin.php (Scanner)",
+      "data": {}
+    },
+    {
+      "id": "log-035-b",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "HTTP 404 /.env (Scanner)",
+      "data": {}
+    },
+    {
+      "id": "log-035-c",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "SLOW QUERY (15s): SELECT * FROM heavy_table WHERE unindexed_col = 'X'",
+      "data": {}
+    },
+    {
+      "id": "metric-035",
+      "source_type": "metric",
+      "timestamp": null,
+      "content": "api_latency_p99: 15000ms",
+      "data": {}
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "obs-1",
+        "concept": "Slow query taking 15 seconds",
+        "acceptable_source_ids": [
+          "log-035-c"
+        ],
+        "keywords_any": [],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "slow query",
+        "database latency"
+      ],
+      "suspected_trigger_keywords_any": [
+        "unindexed column query"
+      ],
+      "causal_strength": "confirmed",
+      "acceptable_confidence": [
+        "high"
+      ],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": [],
+      "required_keyword_groups": [
+        [
+          "add index",
+          "optimize query",
+          "block scanner"
+        ]
+      ],
+      "forbidden_keywords": []
+    },
+    "numeric_facts": [],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": []
+    },
+    "required_missing_information": [],
+    "forbidden_claims": []
+  },
+  "notes": null
+}

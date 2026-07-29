@@ -1,0 +1,92 @@
+{
+  "id": "rca-039-chaos-cpu-stress",
+  "title": "Latency spike due to stress-ng",
+  "scenario_type": "clear_cause",
+  "difficulty": "medium",
+  "tags": [
+    "chaos",
+    "cpu"
+  ],
+  "incident": {
+    "id": "inc-rca-039-chaos-cpu-stress",
+    "title": "Latency spike due to stress-ng",
+    "description": "CPU saturation on node.",
+    "service_name": "api-service",
+    "severity": "SEV-2",
+    "started_at": "2026-07-20T14:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-039",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "USER SRE started process: stress-ng --cpu 8 --timeout 60s",
+      "data": {}
+    },
+    {
+      "id": "metric-039",
+      "source_type": "metric",
+      "timestamp": null,
+      "content": "node_cpu_utilization: 100%",
+      "data": {}
+    },
+    {
+      "id": "runbook-039",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "Check for game days or manual stress testing.",
+      "data": {}
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "obs-1",
+        "concept": "stress-ng process started",
+        "acceptable_source_ids": [
+          "log-039"
+        ],
+        "keywords_any": [],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "cpu saturation",
+        "high cpu utilization"
+      ],
+      "suspected_trigger_keywords_any": [
+        "stress-ng",
+        "manual stress test",
+        "game day"
+      ],
+      "causal_strength": "confirmed",
+      "acceptable_confidence": [
+        "high"
+      ],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": [],
+      "required_keyword_groups": [
+        [
+          "stop stress-ng",
+          "wait for timeout",
+          "communicate with sre",
+          "investigate",
+          "check"
+        ]
+      ],
+      "forbidden_keywords": []
+    },
+    "numeric_facts": [],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": []
+    },
+    "required_missing_information": [],
+    "forbidden_claims": []
+  },
+  "notes": null
+}

@@ -124,7 +124,10 @@
         [
           "connection leak",
           "slow query",
-          "transaction"
+          "transaction",
+          "investigate",
+          "check",
+          "monitor"
         ]
       ],
       "forbidden_keywords": [

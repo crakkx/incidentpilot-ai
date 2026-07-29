@@ -249,10 +249,10 @@ def patch_dashboard_dependencies(
     monkeypatch.setattr(
         "app.services.analysis_service."
         "get_rca_client",
-        lambda provider=None, model_name=None: (
+        lambda provider=None, model_name=None, pipeline=None: (
             DashboardFakeClient(
                 model_name
-                or "qwen2.5:3b"
+                or "mistral-small-latest"
             )
         ),
     )
@@ -278,8 +278,8 @@ def test_dev_start_endpoint_returns_202(
             "/analysis-runs"
         ),
         json={
-            "provider": "ollama",
-            "model_name": "qwen3:4b",
+            "provider": "mistral",
+            "model_name": "mistral-small-latest",
         },
     )
 
@@ -315,8 +315,8 @@ def test_dev_status_endpoint_returns_debug_data(
             "/analysis-runs"
         ),
         json={
-            "provider": "ollama",
-            "model_name": "qwen3:4b",
+            "provider": "mistral",
+            "model_name": "mistral-small-latest",
         },
     )
 
@@ -340,9 +340,9 @@ def test_dev_status_endpoint_returns_debug_data(
     assert body["id"] == analysis_run_id
     assert body["status"] == "completed"
     assert body["model_name"] == (
-        "qwen3:4b"
+        "mistral-small-latest"
     )
-    assert body["provider"] == "ollama"
+    assert body["provider"] == "mistral"
     assert body["report"] is not None
     assert (
         body["raw_model_output"]

@@ -1,0 +1,138 @@
+{
+  "id": "rca-010",
+  "title": "Incident during metric scraping gap with no observability",
+  "scenario_type": "insufficient_evidence",
+  "difficulty": "medium",
+  "tags": [
+    "insufficient-evidence",
+    "monitoring-gap",
+    "observability",
+    "scraping"
+  ],
+  "incident": {
+    "id": "incident-rca-010",
+    "title": "User-service elevated error rate during monitoring outage",
+    "description": "The user-service reported elevated error rates. However, all monitoring scrapers were down between 02:00 and 02:45, leaving a complete observability gap during the incident.",
+    "service_name": "user-service",
+    "severity": "high",
+    "started_at": "2026-07-23T02:10:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-rca-010-a",
+      "source_type": "log",
+      "timestamp": "2026-07-23T01:58:00Z",
+      "content": "user-service error rate normal: 0.2 percent at 01:58",
+      "data": {
+        "level": "INFO",
+        "error_rate_percent": 0.2
+      }
+    },
+    {
+      "id": "log-rca-010-b",
+      "source_type": "log",
+      "timestamp": "2026-07-23T02:48:00Z",
+      "content": "user-service error rate elevated: 14 percent at 02:48 after scraper recovery",
+      "data": {
+        "level": "ERROR",
+        "error_rate_percent": 14
+      }
+    },
+    {
+      "id": "runbook-rca-010",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "Monitoring gaps prevent post-hoc root-cause analysis. Collect application logs directly from the pod filesystem. Check for any correlated deployments or cron jobs in the window before the gap.",
+      "data": {
+        "document_title": "Monitoring Gap Recovery Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-error-after-gap",
+        "concept": "Error rate jumped from 0.2% to 14% during a monitoring gap between 02:00 and 02:45.",
+        "acceptable_source_ids": [
+          "log-rca-010-a",
+          "log-rca-010-b"
+        ],
+        "keywords_any": [
+          "14",
+          "error rate",
+          "monitoring gap",
+          "scraper"
+        ],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "unknown",
+        "insufficient evidence",
+        "cannot determine",
+        "monitoring gap"
+      ],
+      "suspected_trigger_keywords_any": [],
+      "causal_strength": "unknown",
+      "acceptable_confidence": [
+        "low",
+        "medium"
+      ],
+      "must_distinguish_mechanism_and_trigger": false
+    },
+    "actions": {
+      "required_categories": [
+        "collect-evidence",
+        "investigate"
+      ],
+      "required_keyword_groups": [
+        [
+          "pod logs",
+          "application logs",
+          "collect logs",
+          "investigate",
+          "check"
+        ],
+        [
+          "deployment",
+          "cron",
+          "scheduled job",
+          "change in the window",
+          "check config"
+        ]
+      ],
+      "forbidden_keywords": [
+        "database rollback confirmed",
+        "restart immediately without investigation"
+      ]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-error-rate-post",
+        "source_id": "log-rca-010-b",
+        "name": "error_rate_percent",
+        "value": 14,
+        "unit": "percent",
+        "tolerance": 0
+      }
+    ],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": [
+        "definitely caused by database",
+        "deployment caused the error rate"
+      ]
+    },
+    "required_missing_information": [
+      "metrics and logs from the 02:00\u201302:45 window",
+      "deployment or configuration changes in the window",
+      "application-level error codes and stack traces"
+    ],
+    "forbidden_claims": [
+      "external provider outage caused the errors",
+      "disk full caused the error rate spike"
+    ]
+  },
+  "notes": "The observability gap is the dominant feature. The model must report uncertainty and request log collection rather than speculate."
+}

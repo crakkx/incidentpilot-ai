@@ -1,0 +1,95 @@
+{
+  "id": "rca-032-silent-oom",
+  "title": "Pod restarts with memory at 99%, no OOM log",
+  "scenario_type": "insufficient_evidence",
+  "difficulty": "medium",
+  "tags": [
+    "oom",
+    "memory"
+  ],
+  "incident": {
+    "id": "inc-rca-032-silent-oom",
+    "title": "Pod restarts with memory at 99%, no OOM log",
+    "description": "Pod restarted unexpectedly.",
+    "service_name": "api-service",
+    "severity": "SEV-2",
+    "started_at": "2026-07-20T14:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-032",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "Pod api-service-b7d restarted. Exit code 137.",
+      "data": {}
+    },
+    {
+      "id": "metric-032",
+      "source_type": "metric",
+      "timestamp": null,
+      "content": "memory_usage_percent: 99.5% at T-1s",
+      "data": {}
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "obs-1",
+        "concept": "Pod restarted with exit code 137",
+        "acceptable_source_ids": [
+          "log-032"
+        ],
+        "keywords_any": [],
+        "required": true
+      },
+      {
+        "id": "obs-2",
+        "concept": "Memory usage was at 99.5%",
+        "acceptable_source_ids": [
+          "metric-032"
+        ],
+        "keywords_any": [],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "oom kill",
+        "out of memory",
+        "container terminated"
+      ],
+      "suspected_trigger_keywords_any": [
+        "memory leak",
+        "memory spike"
+      ],
+      "causal_strength": "supported",
+      "acceptable_confidence": [
+        "medium",
+        "high"
+      ],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": [],
+      "required_keyword_groups": [
+        [
+          "profile memory",
+          "increase memory limit",
+          "check for memory leaks"
+        ]
+      ],
+      "forbidden_keywords": []
+    },
+    "numeric_facts": [],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": []
+    },
+    "required_missing_information": [
+      "explicit oomkilled log"
+    ],
+    "forbidden_claims": []
+  },
+  "notes": null
+}

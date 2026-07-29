@@ -1,0 +1,127 @@
+{
+  "id": "rca-007",
+  "title": "Ambiguous cascading timeout to payment gateway",
+  "scenario_type": "ambiguous",
+  "difficulty": "hard",
+  "tags": ["ambiguous", "timeout", "dependency", "network", "payment-gateway"],
+  "incident": {
+    "id": "incident-rca-007",
+    "title": "Checkout timeouts on payment gateway calls",
+    "description": "Checkout service began timing out on payment gateway calls. It is unclear whether the gateway is degraded or the internal network is experiencing latency.",
+    "service_name": "checkout-service",
+    "severity": "high",
+    "started_at": "2026-07-21T16:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-rca-007-a",
+      "source_type": "log",
+      "timestamp": "2026-07-21T16:01:00Z",
+      "content": "HTTP request to payment-gateway timed out after 5000ms",
+      "data": {
+        "level": "ERROR",
+        "dependency": "payment-gateway",
+        "timeout_ms": 5000
+      }
+    },
+    {
+      "id": "metric-rca-007",
+      "source_type": "metric",
+      "timestamp": "2026-07-21T16:02:00Z",
+      "content": "gateway_latency_p95 = 4800 ms",
+      "data": {
+        "metric_name": "gateway_latency_p95",
+        "value": 4800,
+        "unit": "ms"
+      }
+    },
+    {
+      "id": "log-rca-007-b",
+      "source_type": "log",
+      "timestamp": "2026-07-21T16:03:00Z",
+      "content": "internal network probe to gateway endpoint responded in 120ms",
+      "data": {
+        "level": "INFO",
+        "probe_target": "payment-gateway-endpoint",
+        "latency_ms": 120
+      }
+    },
+    {
+      "id": "runbook-rca-007",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "Gateway timeouts may indicate upstream degradation or internal network issues. Internal probe latency below 200ms suggests the network path is healthy. Check the gateway status page and correlate with their incident history.",
+      "data": {
+        "document_title": "Payment Gateway Timeout Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-gateway-timeout",
+        "concept": "Checkout service requests to the payment gateway timed out after 5000ms.",
+        "acceptable_source_ids": ["log-rca-007-a"],
+        "keywords_any": ["timed out", "timeout", "5000"],
+        "required": true
+      },
+      {
+        "id": "observation-network-probe-ok",
+        "concept": "Internal network probe to the gateway endpoint showed healthy latency of 120ms.",
+        "acceptable_source_ids": ["log-rca-007-b"],
+        "keywords_any": ["120ms", "probe", "network probe"],
+        "required": false
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "payment gateway",
+        "upstream degradation",
+        "gateway timeout",
+        "external service"
+      ],
+      "suspected_trigger_keywords_any": [],
+      "causal_strength": "unknown",
+      "acceptable_confidence": ["low", "medium"],
+      "must_distinguish_mechanism_and_trigger": false
+    },
+    "actions": {
+      "required_categories": ["investigate", "escalate"],
+      "required_keyword_groups": [
+        ["gateway status", "provider status", "status page"],
+        ["fallback", "circuit breaker", "retry"]
+      ],
+      "forbidden_keywords": [
+        "database rollback",
+        "definitely the network"
+      ]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-gateway-latency",
+        "source_id": "metric-rca-007",
+        "name": "gateway_latency_p95",
+        "value": 4800,
+        "unit": "ms",
+        "tolerance": 0
+      }
+    ],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": [
+        "the network definitely failed",
+        "the gateway is confirmed down"
+      ]
+    },
+    "required_missing_information": [
+      "payment gateway provider status confirmation",
+      "whether the timeout affects all regions or only one"
+    ],
+    "forbidden_claims": [
+      "database connection pool exhausted",
+      "deployment caused the gateway timeout"
+    ]
+  },
+  "notes": "The network probe shows internal routing is healthy, pointing toward gateway degradation, but the model cannot confirm without provider status data. Tests ambiguity and low-to-medium confidence."
+}

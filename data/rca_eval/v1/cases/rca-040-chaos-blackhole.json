@@ -1,0 +1,83 @@
+{
+  "id": "rca-040-chaos-blackhole",
+  "title": "DB unreachable due to iptables rule",
+  "scenario_type": "clear_cause",
+  "difficulty": "medium",
+  "tags": [
+    "chaos",
+    "network"
+  ],
+  "incident": {
+    "id": "inc-rca-040-chaos-blackhole",
+    "title": "DB unreachable due to iptables rule",
+    "description": "Total DB outage.",
+    "service_name": "api-service",
+    "severity": "SEV-2",
+    "started_at": "2026-07-20T14:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-040",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "Connection refused to db-main:5432",
+      "data": {}
+    },
+    {
+      "id": "log-040-b",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "gremlin-agent: successfully injected blackhole on port 5432",
+      "data": {}
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "obs-1",
+        "concept": "Gremlin injected blackhole on DB port",
+        "acceptable_source_ids": [
+          "log-040-b"
+        ],
+        "keywords_any": [],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "connection refused",
+        "database unreachable"
+      ],
+      "suspected_trigger_keywords_any": [
+        "gremlin agent",
+        "blackhole injection",
+        "iptables rule"
+      ],
+      "causal_strength": "confirmed",
+      "acceptable_confidence": [
+        "high"
+      ],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": [],
+      "required_keyword_groups": [
+        [
+          "halt gremlin experiment",
+          "remove blackhole",
+          "revert iptables"
+        ]
+      ],
+      "forbidden_keywords": []
+    },
+    "numeric_facts": [],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": []
+    },
+    "required_missing_information": [],
+    "forbidden_claims": []
+  },
+  "notes": null
+}

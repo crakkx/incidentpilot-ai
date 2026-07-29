@@ -1,0 +1,99 @@
+{
+  "id": "rca-034-noisy-deployments",
+  "title": "Multiple deployments, only one is the trigger",
+  "scenario_type": "noisy_evidence",
+  "difficulty": "hard",
+  "tags": [
+    "deployment",
+    "noise"
+  ],
+  "incident": {
+    "id": "inc-rca-034-noisy-deployments",
+    "title": "Multiple deployments, only one is the trigger",
+    "description": "Payment service crashing.",
+    "service_name": "api-service",
+    "severity": "SEV-2",
+    "started_at": "2026-07-20T14:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "dep-034-a",
+      "source_type": "deployment",
+      "timestamp": null,
+      "content": "email-service deployed v1.2",
+      "data": {}
+    },
+    {
+      "id": "dep-034-b",
+      "source_type": "deployment",
+      "timestamp": null,
+      "content": "auth-service deployed v2.0",
+      "data": {}
+    },
+    {
+      "id": "dep-034-c",
+      "source_type": "deployment",
+      "timestamp": null,
+      "content": "payment-service deployed v3.1",
+      "data": {}
+    },
+    {
+      "id": "log-034",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "payment-service FATAL: Missing environment variable STRIPE_KEY",
+      "data": {}
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "obs-1",
+        "concept": "Payment service missing env var",
+        "acceptable_source_ids": [
+          "log-034"
+        ],
+        "keywords_any": [],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "missing environment variable",
+        "missing stripe key"
+      ],
+      "suspected_trigger_keywords_any": [
+        "payment-service deployment v3.1"
+      ],
+      "causal_strength": "confirmed",
+      "acceptable_confidence": [
+        "medium",
+        "high"
+      ],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": [],
+      "required_keyword_groups": [
+        [
+          "add stripe_key",
+          "rollback payment-service",
+          "fix env var"
+        ]
+      ],
+      "forbidden_keywords": [
+        "email-service",
+        "auth-service"
+      ]
+    },
+    "numeric_facts": [],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "supported",
+      "forbidden_phrases": []
+    },
+    "required_missing_information": [],
+    "forbidden_claims": []
+  },
+  "notes": null
+}

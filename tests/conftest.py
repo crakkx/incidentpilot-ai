@@ -53,7 +53,10 @@ def _truncate_database() -> None:
 
 
 @pytest.fixture(autouse=True)
-def clean_database():
+def clean_database(request):
+    if "no_db" in request.keywords:
+        yield
+        return
     _truncate_database()
     yield
     _truncate_database()

@@ -11,3 +11,4 @@ pydantic
 pydantic-settings
 pgvector
 sentence-transformers
+langgraph

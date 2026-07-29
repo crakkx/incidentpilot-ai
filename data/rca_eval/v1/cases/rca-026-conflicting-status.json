@@ -1,0 +1,99 @@
+{
+  "id": "rca-026-conflicting-status",
+  "title": "Provider status page conflicts with local 502s",
+  "scenario_type": "conflicting_evidence",
+  "difficulty": "medium",
+  "tags": [
+    "provider",
+    "conflict"
+  ],
+  "incident": {
+    "id": "inc-rca-026-conflicting-status",
+    "title": "Provider status page conflicts with local 502s",
+    "description": "Payment failures spiking. Provider status says all green.",
+    "service_name": "api-service",
+    "severity": "SEV-2",
+    "started_at": "2026-07-20T14:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-026",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "HTTP 502 Bad Gateway from payment-provider-api",
+      "data": {}
+    },
+    {
+      "id": "runbook-026",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "If payment fails, check provider status page. If status is green, investigate local network. If status is red, wait for provider.",
+      "data": {}
+    },
+    {
+      "id": "metric-026",
+      "source_type": "metric",
+      "timestamp": null,
+      "content": "status_page_status: 1 (green)",
+      "data": {}
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "obs-1",
+        "concept": "Status page shows green",
+        "acceptable_source_ids": [
+          "metric-026"
+        ],
+        "keywords_any": [],
+        "required": true
+      },
+      {
+        "id": "obs-2",
+        "concept": "Local logs show 502s",
+        "acceptable_source_ids": [
+          "log-026"
+        ],
+        "keywords_any": [],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "502 bad gateway",
+        "provider outage",
+        "upstream failure"
+      ],
+      "suspected_trigger_keywords_any": [],
+      "causal_strength": "supported",
+      "acceptable_confidence": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "must_distinguish_mechanism_and_trigger": false
+    },
+    "actions": {
+      "required_categories": [],
+      "required_keyword_groups": [
+        [
+          "fallback",
+          "circuit breaker",
+          "contact provider",
+          "support ticket"
+        ]
+      ],
+      "forbidden_keywords": []
+    },
+    "numeric_facts": [],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": []
+    },
+    "required_missing_information": [],
+    "forbidden_claims": []
+  },
+  "notes": null
+}

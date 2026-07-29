@@ -1,0 +1,141 @@
+{
+  "id": "rca-004",
+  "title": "OOM kill terminates Node.js API after deployment",
+  "scenario_type": "clear_cause",
+  "difficulty": "easy",
+  "tags": ["oom", "memory", "deployment-correlation", "nodejs"],
+  "incident": {
+    "id": "incident-rca-004",
+    "title": "Order service pods killed by OOM killer",
+    "description": "Multiple order-service pods were killed by the Kubernetes OOM killer beginning shortly after a new release was deployed.",
+    "service_name": "order-service",
+    "severity": "high",
+    "started_at": "2026-07-20T08:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "deployment-rca-004",
+      "source_type": "deployment",
+      "timestamp": "2026-07-20T07:30:00Z",
+      "content": "order-service version 3.1.0 deployed to production",
+      "data": {
+        "version": "3.1.0",
+        "commit_sha": "a1b2c3"
+      }
+    },
+    {
+      "id": "log-rca-004-a",
+      "source_type": "log",
+      "timestamp": "2026-07-20T08:02:00Z",
+      "content": "OOMKilled: container order-service exceeded memory limit",
+      "data": {
+        "level": "ERROR",
+        "reason": "OOMKilled",
+        "container": "order-service"
+      }
+    },
+    {
+      "id": "metric-rca-004",
+      "source_type": "metric",
+      "timestamp": "2026-07-20T08:01:00Z",
+      "content": "memory_usage_bytes = 536870912 bytes (512 MiB, limit 512 MiB)",
+      "data": {
+        "metric_name": "memory_usage_bytes",
+        "value": 536870912,
+        "unit": "bytes"
+      }
+    },
+    {
+      "id": "log-rca-004-b",
+      "source_type": "log",
+      "timestamp": "2026-07-20T08:03:00Z",
+      "content": "Pod order-service-7d9 restarted due to OOMKilled exit code 137",
+      "data": {
+        "level": "WARNING",
+        "exit_code": 137
+      }
+    },
+    {
+      "id": "runbook-rca-004",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "OOMKilled pods indicate the container exceeded its memory limit. Check for memory leaks introduced in recent deployments, unbounded caches, or missing pagination. Consider increasing limits only as a temporary measure while identifying the leak.",
+      "data": {
+        "document_title": "OOM Troubleshooting Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-oom-kill",
+        "concept": "The container was killed by the OOM killer after exceeding its memory limit.",
+        "acceptable_source_ids": ["log-rca-004-a", "log-rca-004-b"],
+        "keywords_any": ["oomkilled", "oom", "memory limit", "exit code 137"],
+        "required": true
+      },
+      {
+        "id": "observation-memory-at-limit",
+        "concept": "Memory usage reached the container limit of 512 MiB.",
+        "acceptable_source_ids": ["metric-rca-004"],
+        "keywords_any": ["536870912", "512 mib", "memory limit"],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "memory limit exceeded",
+        "oom",
+        "out of memory",
+        "memory exhaustion"
+      ],
+      "suspected_trigger_keywords_any": ["deployment", "release", "3.1.0"],
+      "causal_strength": "correlated",
+      "acceptable_confidence": ["medium"],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": ["investigate", "mitigate"],
+      "required_keyword_groups": [
+        ["memory leak", "heap", "profil"],
+        ["rollback", "roll back", "previous version"]
+      ],
+      "forbidden_keywords": ["ignore the oom", "disable memory limit"]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-memory-bytes",
+        "source_id": "metric-rca-004",
+        "name": "memory_usage_bytes",
+        "value": 536870912,
+        "unit": "bytes",
+        "tolerance": 0
+      }
+    ],
+    "temporal_facts": [
+      {
+        "id": "deployment-before-oom",
+        "left_source_id": "deployment-rca-004",
+        "right_source_id": "log-rca-004-a",
+        "relation": "before",
+        "max_gap_seconds": 3600
+      }
+    ],
+    "causal_language": {
+      "deployment_causality": "correlation_only",
+      "forbidden_phrases": [
+        "deployment definitely caused the oom",
+        "deployment proved to cause memory exhaustion"
+      ]
+    },
+    "required_missing_information": [
+      "memory usage trend before and after the deployment",
+      "heap dump or memory profiler output"
+    ],
+    "forbidden_claims": [
+      "infrastructure hardware failure",
+      "network partition caused the restart"
+    ]
+  },
+  "notes": "The OOM cause is clear; the link to version 3.1.0 is temporal but not yet proven."
+}

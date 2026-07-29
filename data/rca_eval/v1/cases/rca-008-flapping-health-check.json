@@ -1,0 +1,126 @@
+{
+  "id": "rca-008",
+  "title": "Flapping health checks with ambiguous app vs load-balancer cause",
+  "scenario_type": "ambiguous",
+  "difficulty": "hard",
+  "tags": ["ambiguous", "health-check", "load-balancer", "intermittent"],
+  "incident": {
+    "id": "incident-rca-008",
+    "title": "Intermittent health check failures on notification service",
+    "description": "Health checks for the notification service are failing intermittently. The service appears responsive to manual requests but the load balancer is deregistering instances.",
+    "service_name": "notification-service",
+    "severity": "medium",
+    "started_at": "2026-07-22T09:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-rca-008-a",
+      "source_type": "log",
+      "timestamp": "2026-07-22T09:01:00Z",
+      "content": "Health check returned HTTP 503 from load balancer probe",
+      "data": {
+        "level": "WARNING",
+        "probe_source": "load-balancer",
+        "status_code": 503
+      }
+    },
+    {
+      "id": "metric-rca-008",
+      "source_type": "metric",
+      "timestamp": "2026-07-22T09:02:00Z",
+      "content": "health_check_success_rate = 68 percent",
+      "data": {
+        "metric_name": "health_check_success_rate",
+        "value": 68,
+        "unit": "percent"
+      }
+    },
+    {
+      "id": "log-rca-008-b",
+      "source_type": "log",
+      "timestamp": "2026-07-22T09:03:00Z",
+      "content": "Manual curl to /healthz returned HTTP 200 OK in 45ms",
+      "data": {
+        "level": "INFO",
+        "endpoint": "/healthz",
+        "status_code": 200,
+        "latency_ms": 45
+      }
+    },
+    {
+      "id": "runbook-rca-008",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "Intermittent health check failures may stem from too-tight timeouts on the load balancer probe, a heavy startup initialization, or genuine application instability. Compare probe timeout with observed /healthz response time before concluding.",
+      "data": {
+        "document_title": "Health Check Failure Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-health-check-failing",
+        "concept": "Load balancer health check success rate dropped to 68%.",
+        "acceptable_source_ids": ["metric-rca-008", "log-rca-008-a"],
+        "keywords_any": ["68", "health check", "503"],
+        "required": true
+      },
+      {
+        "id": "observation-manual-ok",
+        "concept": "Manual health check request returned 200 OK in 45ms, suggesting the service is sometimes responsive.",
+        "acceptable_source_ids": ["log-rca-008-b"],
+        "keywords_any": ["200", "manual", "45ms"],
+        "required": false
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "health check failure",
+        "intermittent failure",
+        "load balancer probe",
+        "flapping"
+      ],
+      "suspected_trigger_keywords_any": [],
+      "causal_strength": "unknown",
+      "acceptable_confidence": ["low", "medium"],
+      "must_distinguish_mechanism_and_trigger": false
+    },
+    "actions": {
+      "required_categories": ["investigate"],
+      "required_keyword_groups": [
+        ["probe timeout", "load balancer timeout", "lb timeout"],
+        ["healthz", "health endpoint", "startup"]
+      ],
+      "forbidden_keywords": ["disable health checks", "ignore the failures"]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-health-success-rate",
+        "source_id": "metric-rca-008",
+        "name": "health_check_success_rate",
+        "value": 68,
+        "unit": "percent",
+        "tolerance": 0
+      }
+    ],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": [
+        "the application is definitely down",
+        "load balancer is confirmed broken"
+      ]
+    },
+    "required_missing_information": [
+      "load balancer probe timeout configuration",
+      "application initialization time",
+      "whether failures correlate with pod restarts"
+    ],
+    "forbidden_claims": [
+      "database failure caused health check failures",
+      "disk full caused the health checks to fail"
+    ]
+  },
+  "notes": "The manual healthz returning 200 OK rules out total failure but does not explain intermittency. Model must resist committing to a single cause."
+}

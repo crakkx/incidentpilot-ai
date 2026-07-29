@@ -18,24 +18,14 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     # LLM provider
-    llm_provider: str = "ollama"
+    llm_provider: str = "mistral"
 
     # Retrieval settings
     embedding_model_name: str = (
-        "sentence-transformers/all-MiniLM-L6-v2"
+        "BAAI/bge-small-en-v1.5"
     )
     embedding_dimensions: int = 384
     embedding_cache_dir: str = "/cache/sentence-transformers"
-
-    # Local Ollama settings
-    ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "qwen2.5:3b"
-    ollama_timeout_seconds: float = 240.0
-    ollama_keep_alive: str = "10m"
-    ollama_num_ctx: int = 8192
-    ollama_temperature: float = 0.0
-    ollama_num_predict: int = 1800
-    ollama_seed: int = 42
 
     # Hosted Mistral settings
     mistral_api_key: SecretStr | None = None
@@ -51,6 +41,14 @@ class Settings(BaseSettings):
     rca_max_metrics: int = 20
     rca_max_deployments: int = 10
     rca_runbook_top_k: int = 5
+
+    # RCA generation pipeline uses a LangGraph multi-node graph (extraction -> 
+    # cross-validation -> synthesis -> action recommendation), with deterministic 
+    # confidence calibration and a shared, bounded schema-repair budget.
+
+    # Max total node-level schema-validation repairs shared across one graph
+    # run. Nominal calls = 4 (one per node); worst case = 4 + this value.
+    rca_graph_max_repairs: int = 3
 
     model_config = SettingsConfigDict(
         env_file=".env",

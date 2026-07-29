@@ -1,0 +1,131 @@
+{
+  "id": "rca-013",
+  "title": "TLS certificate expiry with conflicting network error logs",
+  "scenario_type": "conflicting_evidence",
+  "difficulty": "medium",
+  "tags": ["conflicting-evidence", "tls", "certificate", "network"],
+  "incident": {
+    "id": "incident-rca-013",
+    "title": "API gateway HTTPS connections rejected",
+    "description": "The API gateway began rejecting HTTPS connections. Logs show both a TLS certificate expiry and connection reset errors, which can share the same symptom.",
+    "service_name": "api-gateway",
+    "severity": "high",
+    "started_at": "2026-07-24T06:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-rca-013-a",
+      "source_type": "log",
+      "timestamp": "2026-07-24T06:00:30Z",
+      "content": "TLS certificate expired: CN=api-gateway.example.com, expired 2026-07-24T06:00:00Z",
+      "data": {
+        "level": "ERROR",
+        "event": "cert_expired",
+        "cn": "api-gateway.example.com"
+      }
+    },
+    {
+      "id": "log-rca-013-b",
+      "source_type": "log",
+      "timestamp": "2026-07-24T06:01:00Z",
+      "content": "connection reset by peer on HTTPS port 443",
+      "data": {
+        "level": "ERROR",
+        "event": "connection_reset",
+        "port": 443
+      }
+    },
+    {
+      "id": "metric-rca-013",
+      "source_type": "metric",
+      "timestamp": "2026-07-24T06:01:30Z",
+      "content": "https_error_rate = 100 percent",
+      "data": {
+        "metric_name": "https_error_rate",
+        "value": 100,
+        "unit": "percent"
+      }
+    },
+    {
+      "id": "runbook-rca-013",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "Certificate expiry and TCP connection resets can produce identical client-visible errors. Prioritize certificate renewal first — if errors persist after renewal, investigate network-level connectivity.",
+      "data": {
+        "document_title": "API Gateway TLS Failure Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-cert-expired",
+        "concept": "The TLS certificate for api-gateway.example.com expired at 06:00 UTC.",
+        "acceptable_source_ids": ["log-rca-013-a"],
+        "keywords_any": ["certificate expired", "cert expired", "tls"],
+        "required": true
+      },
+      {
+        "id": "observation-connection-reset",
+        "concept": "Connection reset errors on port 443 were also present alongside the certificate expiry.",
+        "acceptable_source_ids": ["log-rca-013-b"],
+        "keywords_any": ["connection reset", "reset by peer", "port 443"],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "certificate expiry",
+        "tls certificate expired",
+        "cert expired"
+      ],
+      "suspected_trigger_keywords_any": ["certificate renewal", "renewal missed", "rotation"],
+      "causal_strength": "supported",
+      "acceptable_confidence": ["medium", "high"],
+      "must_distinguish_mechanism_and_trigger": false
+    },
+    "actions": {
+      "required_categories": ["mitigate", "investigate"],
+      "required_keyword_groups": [
+        ["renew certificate", "certificate renewal", "new cert"],
+        ["verify after renewal", "connection reset persists", "test after fix"]
+      ],
+      "forbidden_keywords": ["ignore the cert expiry", "disable tls"]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-https-error-rate",
+        "source_id": "metric-rca-013",
+        "name": "https_error_rate",
+        "value": 100,
+        "unit": "percent",
+        "tolerance": 0
+      }
+    ],
+    "temporal_facts": [
+      {
+        "id": "cert-expiry-before-reset",
+        "left_source_id": "log-rca-013-a",
+        "right_source_id": "log-rca-013-b",
+        "relation": "before",
+        "max_gap_seconds": 120
+      }
+    ],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": [
+        "network partition is confirmed",
+        "deployment caused tls expiry"
+      ]
+    },
+    "required_missing_information": [
+      "whether errors persist after certificate renewal",
+      "certificate expiry alerting configuration"
+    ],
+    "forbidden_claims": [
+      "database caused the TLS error",
+      "disk full caused connection resets"
+    ]
+  },
+  "notes": "Both cert expiry and connection resets share the same symptom. Model should prioritize cert expiry as the primary cause while acknowledging the network reset as a potential secondary factor."
+}

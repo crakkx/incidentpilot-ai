@@ -1,0 +1,104 @@
+{
+  "id": "rca-027-metric-log-mismatch",
+  "title": "CPU metric shows 20% but logs show CPU throttling",
+  "scenario_type": "conflicting_evidence",
+  "difficulty": "hard",
+  "tags": [
+    "cpu",
+    "metrics"
+  ],
+  "incident": {
+    "id": "inc-rca-027-metric-log-mismatch",
+    "title": "CPU metric shows 20% but logs show CPU throttling",
+    "description": "High latency. Dashboard shows CPU at 20%, but app feels throttled.",
+    "service_name": "api-service",
+    "severity": "SEV-2",
+    "started_at": "2026-07-20T14:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-027",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "WARN: CPU throttling detected - 100% utilization hit on cgroup",
+      "data": {}
+    },
+    {
+      "id": "metric-027",
+      "source_type": "metric",
+      "timestamp": null,
+      "content": "pod_cpu_utilization: 20%",
+      "data": {}
+    },
+    {
+      "id": "runbook-027",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "Check pod_cpu_utilization. If low, CPU is not the bottleneck.",
+      "data": {}
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "obs-1",
+        "concept": "Logs show CPU throttling",
+        "acceptable_source_ids": [
+          "log-027"
+        ],
+        "keywords_any": [],
+        "required": true
+      },
+      {
+        "id": "obs-2",
+        "concept": "Metrics show 20% CPU",
+        "acceptable_source_ids": [
+          "metric-027"
+        ],
+        "keywords_any": [],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "cpu throttling",
+        "cgroup limit"
+      ],
+      "suspected_trigger_keywords_any": [
+        "metric scraper misconfiguration",
+        "wrong pod scraped",
+        "metric pipeline delay",
+        "unknown"
+      ],
+      "causal_strength": "supported",
+      "acceptable_confidence": [
+        "low",
+        "medium"
+      ],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": [],
+      "required_keyword_groups": [
+        [
+          "investigate metric",
+          "scraper configuration",
+          "fix dashboard",
+          "increase limit"
+        ]
+      ],
+      "forbidden_keywords": []
+    },
+    "numeric_facts": [],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": []
+    },
+    "required_missing_information": [
+      "reason for metric discrepancy"
+    ],
+    "forbidden_claims": []
+  },
+  "notes": null
+}

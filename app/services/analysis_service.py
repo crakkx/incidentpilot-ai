@@ -117,6 +117,7 @@ def prepare_analysis_run(
     incident_id: str,
     provider: str | None = None,
     model_name: str | None = None,
+    pipeline: str | None = None,
 ) -> AnalysisRun:
     incident = get_incident(
         db=db,
@@ -144,6 +145,7 @@ def prepare_analysis_run(
         build_analysis_run_metadata(
             provider=selected_provider,
             model_name=selected_model,
+            pipeline=pipeline,
         )
     )
 
@@ -514,11 +516,16 @@ def run_analysis_job(
             provider=(
                 (analysis_run.run_config or {})
                 .get("llm", {})
-                .get("runtime", "ollama")
+                .get("runtime", "mistral")
             ),
             model_name=(
                 analysis_run.model_name
-            )
+            ),
+            pipeline=(
+                (analysis_run.run_config or {})
+                .get("llm", {})
+                .get("pipeline_mode")
+            ),
         )
 
         execute_analysis_run(
@@ -542,11 +549,16 @@ def analyze_incident(
         incident_id=incident_id,
         provider=(
             llm_client.provider
-            or "ollama"
+            or "mistral"
         ),
         model_name=getattr(
             llm_client,
             "model_name",
+            None,
+        ),
+        pipeline=getattr(
+            llm_client,
+            "pipeline_mode",
             None,
         ),
     )

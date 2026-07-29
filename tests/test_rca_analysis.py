@@ -34,10 +34,11 @@ def test_rca_schema_orders_evidence_before_claims():
         "$defs"
     ]["EvidenceItem"]["properties"]
 
-    assert report_properties[:3] == [
+    assert report_properties[:4] == [
         "evidence",
-        "incident_summary",
-        "likely_root_cause",
+        "observations",
+        "log_anomalies",
+        "metric_anomalies",
     ]
     assert list(evidence_ref)[:4] == [
         "excerpt",
@@ -380,7 +381,7 @@ def test_analyze_incident_returns_and_saves_report(
     data = response.json()
 
     assert data["status"] == "completed"
-    assert data["model_name"] == "qwen2.5:3b"
+    assert data["model_name"] == "mistral-small-latest"
 
     assert (
         data["report"]["confidence"]

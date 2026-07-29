@@ -5,10 +5,10 @@ from typing import Any
 from app.core.config import settings
 from app.core.versions import (
     PIPELINE_VERSION,
+    RCA_GRAPH_PIPELINE_VERSION,
     RCA_PROMPT_VERSION,
     RCA_SCHEMA_VERSION,
 )
-from app.llm.prompts import RCA_SYSTEM_PROMPT
 from app.llm.client import (
     default_model_for_provider,
     normalize_llm_provider,
@@ -39,11 +39,13 @@ def build_analysis_run_metadata(
     *,
     provider: str | None = None,
     model_name: str | None = None,
+    pipeline: str | None = None,
 ) -> dict[str, Any]:
     schema = RCAReport.model_json_schema()
     selected_provider = normalize_llm_provider(
         provider
     )
+    selected_pipeline = "graph"
     selected_model = (
         model_name
         or default_model_for_provider(
@@ -54,6 +56,7 @@ def build_analysis_run_metadata(
     if selected_provider == "mistral":
         llm_config = {
             "runtime": selected_provider,
+            "pipeline_mode": selected_pipeline,
             "model": selected_model,
             "temperature": (
                 settings.mistral_temperature
@@ -65,6 +68,11 @@ def build_analysis_run_metadata(
                 settings.mistral_random_seed
             ),
         }
+
+        if selected_pipeline == "graph":
+            llm_config["graph_max_repairs"] = (
+                settings.rca_graph_max_repairs
+            )
     else:
         llm_config = {
             "runtime": selected_provider,
@@ -79,8 +87,14 @@ def build_analysis_run_metadata(
             "seed": settings.ollama_seed,
         }
 
+    active_pipeline_version = (
+        RCA_GRAPH_PIPELINE_VERSION
+        if selected_pipeline == "graph"
+        else PIPELINE_VERSION
+    )
+
     run_config = {
-        "pipeline_version": PIPELINE_VERSION,
+        "pipeline_version": active_pipeline_version,
         "schema_version": RCA_SCHEMA_VERSION,
         "prompt_version": RCA_PROMPT_VERSION,
         "llm": llm_config,
@@ -110,9 +124,7 @@ def build_analysis_run_metadata(
             ),
         },
         "integrity": {
-            "prompt_sha256": _sha256_text(
-                RCA_SYSTEM_PROMPT
-            ),
+            "prompt_sha256": "graph_nodes_managed",
             "schema_sha256": _sha256_text(
                 _stable_json(schema)
             ),
@@ -120,7 +132,7 @@ def build_analysis_run_metadata(
     }
 
     return {
-        "pipeline_version": PIPELINE_VERSION,
+        "pipeline_version": active_pipeline_version,
         "schema_version": RCA_SCHEMA_VERSION,
         "prompt_version": RCA_PROMPT_VERSION,
         "run_config": run_config,

@@ -9,3 +9,4 @@
 .vscode/
 __pycache__/
 reports/demo_rca.json
+reports/*.json

@@ -1,0 +1,153 @@
+{
+  "id": "rca-009",
+  "title": "Service crash on startup with ambiguous race condition or config error",
+  "scenario_type": "ambiguous",
+  "difficulty": "hard",
+  "tags": [
+    "ambiguous",
+    "startup",
+    "crash",
+    "race-condition",
+    "initialization"
+  ],
+  "incident": {
+    "id": "incident-rca-009",
+    "title": "Search service pod crashing during startup",
+    "description": "The search-service pod is crashing repeatedly shortly after startup. The crash log shows a NullPointerException but the config is reported as loaded correctly.",
+    "service_name": "search-service",
+    "severity": "high",
+    "started_at": "2026-07-22T11:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-rca-009-a",
+      "source_type": "log",
+      "timestamp": "2026-07-22T11:00:08Z",
+      "content": "NullPointerException: index client not initialized at SearchController.search",
+      "data": {
+        "level": "ERROR",
+        "exception": "NullPointerException",
+        "location": "SearchController.search"
+      }
+    },
+    {
+      "id": "log-rca-009-b",
+      "source_type": "log",
+      "timestamp": "2026-07-22T11:00:05Z",
+      "content": "Configuration loaded successfully: elasticsearch_host=es-cluster:9200",
+      "data": {
+        "level": "INFO",
+        "elasticsearch_host": "es-cluster:9200"
+      }
+    },
+    {
+      "id": "log-rca-009-c",
+      "source_type": "log",
+      "timestamp": "2026-07-22T11:00:06Z",
+      "content": "Startup health probe received before index client initialization completed",
+      "data": {
+        "level": "WARNING",
+        "event": "early_probe"
+      }
+    },
+    {
+      "id": "runbook-rca-009",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "Startup crashes with NullPointerException may indicate a race condition where a request arrives before async initialization completes. Add a readiness gate or use liveness probe startupFailureThreshold to delay traffic routing until fully initialized.",
+      "data": {
+        "document_title": "Service Startup Crash Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-npe",
+        "concept": "A NullPointerException was thrown at SearchController.search indicating the index client was not initialized.",
+        "acceptable_source_ids": [
+          "log-rca-009-a"
+        ],
+        "keywords_any": [
+          "nullpointerexception",
+          "not initialized",
+          "index client"
+        ],
+        "required": true
+      },
+      {
+        "id": "observation-early-probe",
+        "concept": "A startup health probe was received before index client initialization completed.",
+        "acceptable_source_ids": [
+          "log-rca-009-c"
+        ],
+        "keywords_any": [
+          "early probe",
+          "before initialization",
+          "startup"
+        ],
+        "required": false
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "race condition",
+        "not initialized",
+        "startup race",
+        "initialization order",
+        "early traffic"
+      ],
+      "suspected_trigger_keywords_any": [
+        "readiness probe",
+        "startup probe",
+        "initialization"
+      ],
+      "causal_strength": "unknown",
+      "acceptable_confidence": [
+        "low",
+        "medium"
+      ],
+      "must_distinguish_mechanism_and_trigger": false
+    },
+    "actions": {
+      "required_categories": [
+        "investigate",
+        "mitigate"
+      ],
+      "required_keyword_groups": [
+        [
+          "readiness gate",
+          "readiness probe",
+          "startup probe"
+        ],
+        [
+          "initialization",
+          "async",
+          "synchronize"
+        ]
+      ],
+      "forbidden_keywords": [
+        "disable readiness probe",
+        "ignore the npe"
+      ]
+    },
+    "numeric_facts": [],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": [
+        "configuration is wrong",
+        "elasticsearch is down"
+      ]
+    },
+    "required_missing_information": [
+      "readiness probe configuration (delay and threshold)",
+      "whether index client initialization is asynchronous",
+      "full stack trace of the NullPointerException"
+    ],
+    "forbidden_claims": [
+      "disk failure caused the crash",
+      "elasticsearch cluster is unavailable"
+    ]
+  },
+  "notes": "Config loads successfully but NPE still occurs, implying a timing issue. The model must avoid blaming config when it loaded fine and instead identify startup sequencing."
+}

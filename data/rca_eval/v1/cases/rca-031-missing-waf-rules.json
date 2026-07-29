@@ -1,0 +1,88 @@
+{
+  "id": "rca-031-missing-waf-rules",
+  "title": "WAF blocks 90% traffic, missing rule details",
+  "scenario_type": "insufficient_evidence",
+  "difficulty": "hard",
+  "tags": [
+    "waf",
+    "security"
+  ],
+  "incident": {
+    "id": "inc-rca-031-missing-waf-rules",
+    "title": "WAF blocks 90% traffic, missing rule details",
+    "description": "Massive drop in successful requests. 403 Forbidden spikes.",
+    "service_name": "api-service",
+    "severity": "SEV-2",
+    "started_at": "2026-07-20T14:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-031",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "HTTP 403 Forbidden - Request blocked by WAF",
+      "data": {}
+    },
+    {
+      "id": "metric-031",
+      "source_type": "metric",
+      "timestamp": null,
+      "content": "waf_blocked_requests_rate: 90%",
+      "data": {}
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "obs-1",
+        "concept": "WAF is blocking 90% of requests",
+        "acceptable_source_ids": [
+          "log-031",
+          "metric-031"
+        ],
+        "keywords_any": [],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "waf blocking traffic",
+        "requests blocked by waf"
+      ],
+      "suspected_trigger_keywords_any": [
+        "unknown waf rule",
+        "false positive rule update"
+      ],
+      "causal_strength": "supported",
+      "acceptable_confidence": [
+        "low",
+        "medium"
+      ],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": [],
+      "required_keyword_groups": [
+        [
+          "check waf rules",
+          "investigate waf logs",
+          "disable waf temporarily",
+          "identify client ips"
+        ]
+      ],
+      "forbidden_keywords": []
+    },
+    "numeric_facts": [],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": []
+    },
+    "required_missing_information": [
+      "specific waf rule ids triggered",
+      "client ip addresses blocked"
+    ],
+    "forbidden_claims": []
+  },
+  "notes": null
+}

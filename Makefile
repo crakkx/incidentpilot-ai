@@ -17,7 +17,7 @@ help:
 	@echo "  make eval     Run retrieval evaluation and update README"
 	@echo "  make demo     Run the end-to-end local RCA demo"
 	@echo "  make logs     Follow API logs"
-	@echo "  make status   Show container and Ollama status"
+	@echo "  make status   Show container status"
 
 setup:
 	docker compose up -d --build
@@ -70,8 +70,6 @@ demo:
 
 status:
 	docker compose ps
-	@echo ""
-	@ollama ps || true
 
 dashboard:
 	docker compose up -d

@@ -1,0 +1,92 @@
+{
+  "id": "rca-028-false-alert-conflict",
+  "title": "Synthetic prober fires high latency alert but actual p99 is 10ms",
+  "scenario_type": "conflicting_evidence",
+  "difficulty": "medium",
+  "tags": [
+    "alerting",
+    "prober"
+  ],
+  "incident": {
+    "id": "inc-rca-028-false-alert-conflict",
+    "title": "Synthetic prober fires high latency alert but actual p99 is 10ms",
+    "description": "PagerDuty alert for high latency on API.",
+    "service_name": "api-service",
+    "severity": "SEV-2",
+    "started_at": "2026-07-20T14:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-028",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "Synthetic prober health check failed: timeout after 30s",
+      "data": {}
+    },
+    {
+      "id": "metric-028",
+      "source_type": "metric",
+      "timestamp": null,
+      "content": "api_latency_p99: 10ms",
+      "data": {}
+    },
+    {
+      "id": "runbook-028",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "If prober fails but actual latency is low, investigate prober network path or DNS.",
+      "data": {}
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "obs-1",
+        "concept": "Prober timed out",
+        "acceptable_source_ids": [
+          "log-028"
+        ],
+        "keywords_any": [],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "synthetic prober failure",
+        "prober timeout"
+      ],
+      "suspected_trigger_keywords_any": [
+        "prober network",
+        "dns issue",
+        "false alarm"
+      ],
+      "causal_strength": "supported",
+      "acceptable_confidence": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": [],
+      "required_keyword_groups": [
+        [
+          "investigate prober",
+          "check synthetic",
+          "prober network"
+        ]
+      ],
+      "forbidden_keywords": []
+    },
+    "numeric_facts": [],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": []
+    },
+    "required_missing_information": [],
+    "forbidden_claims": []
+  },
+  "notes": null
+}
