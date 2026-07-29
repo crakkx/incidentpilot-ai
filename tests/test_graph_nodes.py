@@ -8,8 +8,11 @@ from app.llm.errors import InvalidRCAOutputError
 
 pytestmark = pytest.mark.no_db
 
+from pydantic import SecretStr
+from app.core.config import settings
+
 def test_invoke_node_success(monkeypatch):
-    monkeypatch.setattr("app.llm.mistral_http.settings.mistral_api_key.get_secret_value", lambda: "test_key", raising=False)
+    monkeypatch.setattr(settings, "mistral_api_key", SecretStr("test_key"))
     
     valid_json = '{"evidence": [], "log_anomalies": [], "metric_anomalies": [], "deployment_events": [], "entity_glossary": []}'
     
@@ -43,7 +46,7 @@ def test_invoke_node_success(monkeypatch):
 
 
 def test_invoke_node_retries_and_fails(monkeypatch):
-    monkeypatch.setattr("app.llm.mistral_http.settings.mistral_api_key.get_secret_value", lambda: "test_key", raising=False)
+    monkeypatch.setattr(settings, "mistral_api_key", SecretStr("test_key"))
     
     invalid_json = '{"evidence": "not a list"}'
     

@@ -3,12 +3,13 @@ import httpx
 from unittest.mock import patch, MagicMock
 from app.llm.mistral_http import call_mistral_chat
 from app.llm.errors import MistralRequestError, InvalidRCAOutputError
+from pydantic import SecretStr
 from app.core.config import settings
 
 pytestmark = pytest.mark.no_db
 
 def test_call_mistral_chat_success(monkeypatch):
-    monkeypatch.setattr(settings.mistral_api_key, "get_secret_value", lambda: "test_key", raising=False)
+    monkeypatch.setattr(settings, "mistral_api_key", SecretStr("test_key"))
     
     mock_response = MagicMock(spec=httpx.Response)
     mock_response.json.return_value = {
@@ -43,7 +44,7 @@ def test_call_mistral_chat_success(monkeypatch):
 
 
 def test_call_mistral_chat_missing_api_key(monkeypatch):
-    monkeypatch.setattr(settings.mistral_api_key, "get_secret_value", lambda: "", raising=False)
+    monkeypatch.setattr(settings, "mistral_api_key", SecretStr(""))
     
     with pytest.raises(MistralRequestError, match="MISTRAL_API_KEY is not configured"):
         call_mistral_chat(
@@ -55,7 +56,7 @@ def test_call_mistral_chat_missing_api_key(monkeypatch):
 
 
 def test_call_mistral_chat_http_error(monkeypatch):
-    monkeypatch.setattr(settings.mistral_api_key, "get_secret_value", lambda: "test_key", raising=False)
+    monkeypatch.setattr(settings, "mistral_api_key", SecretStr("test_key"))
     
     mock_response = MagicMock(spec=httpx.Response)
     mock_response.raise_for_status.side_effect = httpx.HTTPError("429 Too Many Requests")
@@ -71,7 +72,7 @@ def test_call_mistral_chat_http_error(monkeypatch):
 
 
 def test_call_mistral_chat_invalid_json_structure(monkeypatch):
-    monkeypatch.setattr(settings.mistral_api_key, "get_secret_value", lambda: "test_key", raising=False)
+    monkeypatch.setattr(settings, "mistral_api_key", SecretStr("test_key"))
     
     mock_response = MagicMock(spec=httpx.Response)
     mock_response.json.return_value = {"id": "msg"}
