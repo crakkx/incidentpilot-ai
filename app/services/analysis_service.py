@@ -545,6 +545,12 @@ def enqueue_analysis_incident(
     incident_id: str,
     llm_client: RCAClient,
 ) -> AnalysisRun:
+    from app.repositories.analysis_repository import get_active_analysis_run
+    
+    active_run = get_active_analysis_run(db=db, incident_id=incident_id)
+    if active_run:
+        return active_run
+
     analysis_run = prepare_analysis_run(
         db=db,
         incident_id=incident_id,

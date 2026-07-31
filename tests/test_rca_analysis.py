@@ -646,3 +646,33 @@ def test_get_latest_analysis_not_found(client):
     response = client.get("/incidents/missing-incident/analyze")
     assert response.status_code == 404
     assert response.json()["detail"] == "No analysis runs found for this incident"
+
+
+def test_analyze_incident_idempotency_returns_existing_run(
+    client,
+    db_session,
+    monkeypatch,
+):
+    from app.worker.tasks import run_analysis_task
+
+    fake_client = FakeRCAClient()
+    
+    # Do not execute synchronously so it remains in queued state
+    monkeypatch.setattr(run_analysis_task, "delay", lambda run_id: None)
+
+    seeded = seed_incident_evidence(db_session)
+
+    app.dependency_overrides[get_rca_client] = lambda: fake_client
+
+    try:
+        response1 = client.post(f"/incidents/{seeded['incident'].id}/analyze")
+        assert response1.status_code == 202
+        run1_id = response1.json()["analysis_run_id"]
+
+        response2 = client.post(f"/incidents/{seeded['incident'].id}/analyze")
+        assert response2.status_code == 202
+        run2_id = response2.json()["analysis_run_id"]
+
+        assert run1_id == run2_id
+    finally:
+        app.dependency_overrides.pop(get_rca_client, None)

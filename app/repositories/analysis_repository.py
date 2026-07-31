@@ -1,5 +1,6 @@
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import AnalysisRun
@@ -39,3 +40,16 @@ def get_analysis_run(
         AnalysisRun,
         analysis_run_id,
     )
+
+
+def get_active_analysis_run(
+    db: Session,
+    incident_id: str,
+) -> AnalysisRun | None:
+    stmt = (
+        select(AnalysisRun)
+        .where(AnalysisRun.incident_id == incident_id)
+        .where(AnalysisRun.status.in_(["queued", "running"]))
+        .order_by(AnalysisRun.started_at.desc())
+    )
+    return db.execute(stmt).scalars().first()

@@ -84,7 +84,6 @@ def _run_batch_eval_job(
         run_rca_evals(
             provider=provider,
             model_name=model_name,
-            pipeline=pipeline,
             case_ids=case_ids,
             progress_callback=on_progress,
             verbose=False,
