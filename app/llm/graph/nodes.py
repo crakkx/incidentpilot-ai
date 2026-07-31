@@ -119,6 +119,9 @@ def _invoke_node(
             ]
 
 
+import mlflow
+
+@mlflow.trace(span_type="CHAIN")
 def run_extraction_node(
     state: GraphState,
     *,
@@ -150,6 +153,7 @@ def run_extraction_node(
     return state
 
 
+@mlflow.trace(span_type="CHAIN")
 def run_contradiction_node(
     state: GraphState,
     *,
@@ -186,6 +190,7 @@ def run_contradiction_node(
     return state
 
 
+@mlflow.trace(span_type="CHAIN")
 def run_synthesis_node(
     state: GraphState,
     *,
@@ -231,6 +236,7 @@ def run_synthesis_node(
     return state
 
 
+@mlflow.trace(span_type="CHAIN")
 def run_validation_node(
     state: GraphState,
     *,
@@ -316,6 +322,7 @@ def run_validation_node(
     return state
 
 
+@mlflow.trace(span_type="CHAIN")
 def run_action_node(
     state: GraphState,
     *,

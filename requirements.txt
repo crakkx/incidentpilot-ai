@@ -14,3 +14,6 @@ pgvector
 sentence-transformers
 langgraph
 celery
+mlflow
+prometheus-client
+python-json-logger

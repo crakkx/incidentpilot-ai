@@ -66,7 +66,7 @@ eval:
 		python scripts/run_retrieval_evals.py --update-readme
 
 demo:
-	sh scripts/demo_day10.sh
+	python3 scripts/demo.py
 
 status:
 	docker compose ps

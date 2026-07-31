@@ -36,10 +36,13 @@ services:
       RCA_MAX_METRICS: 50
       RCA_MAX_DEPLOYMENTS: 20
       RCA_RUNBOOK_TOP_K: 5
+      MLFLOW_TRACKING_URI: http://mlflow:5000
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_started
+      mlflow:
         condition: service_started
     volumes:
       - .:/app
@@ -86,10 +89,13 @@ services:
       MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
       MISTRAL_BASE_URL: ${MISTRAL_BASE_URL:-https://api.mistral.ai}
       MISTRAL_MODEL: ${MISTRAL_MODEL:-mistral-small-latest}
+      MLFLOW_TRACKING_URI: http://mlflow:5000
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_started
+      mlflow:
         condition: service_started
     volumes:
       - .:/app
@@ -98,9 +104,40 @@ services:
       - sentence_transformers_cache:/cache/sentence-transformers
     command: celery -A app.worker.celery_app worker --loglevel=info
 
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.14.0
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_data:/mlflow
+    command: mlflow server --host 0.0.0.0 --backend-store-uri sqlite:////mlflow/mlflow.db --default-artifact-root /mlflow/artifacts
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+
 volumes:
   postgres_data:
   redis_data:
   hf_cache:
   torch_cache:
   sentence_transformers_cache:
+  mlflow_data:
+  prometheus_data:
+  grafana_data:
