@@ -500,6 +500,7 @@ def execute_analysis_run(
 
 def run_analysis_job(
     analysis_run_id: str,
+    llm_client: RCAClient | None = None,
 ) -> None:
     db = SessionLocal()
 
@@ -512,7 +513,7 @@ def run_analysis_job(
         if analysis_run is None:
             return
 
-        llm_client = get_rca_client(
+        llm_client = llm_client or get_rca_client(
             provider=(
                 (analysis_run.run_config or {})
                 .get("llm", {})
@@ -539,11 +540,11 @@ def run_analysis_job(
         db.close()
 
 
-def analyze_incident(
+def enqueue_analysis_incident(
     db: Session,
     incident_id: str,
     llm_client: RCAClient,
-) -> tuple[AnalysisRun, RCAReport]:
+) -> AnalysisRun:
     analysis_run = prepare_analysis_run(
         db=db,
         incident_id=incident_id,
@@ -563,20 +564,7 @@ def analyze_incident(
         ),
     )
 
-    completed_run, report = (
-        execute_analysis_run(
-            db=db,
-            analysis_run_id=(
-                analysis_run.id
-            ),
-            llm_client=llm_client,
-            raise_http_errors=True,
-        )
-    )
+    from app.worker.tasks import run_analysis_task
+    run_analysis_task.delay(analysis_run.id)
 
-    if report is None:
-        raise RuntimeError(
-            "Completed analysis has no report."
-        )
-
-    return completed_run, report
+    return analysis_run

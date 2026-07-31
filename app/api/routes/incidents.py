@@ -6,8 +6,9 @@ from app.llm.client import RCAClient, get_rca_client
 from app.schemas.analysis import IncidentAnalysisResponse
 from app.schemas.incident import IncidentCreate, IncidentRead
 from app.services.analysis_service import (
-    analyze_incident as service_analyze_incident,
+    enqueue_analysis_incident,
 )
+from app.models import AnalysisRun
 from app.services.incident_service import (
     create_incident as service_create_incident,
 )
@@ -54,14 +55,14 @@ def list_incidents(
 @router.post(
     "/{incident_id}/analyze",
     response_model=IncidentAnalysisResponse,
-    status_code=201,
+    status_code=202,
 )
 def analyze_incident(
     incident_id: str,
     db: Session = Depends(get_db),
     llm_client: RCAClient = Depends(get_rca_client),
 ):
-    analysis_run, report = service_analyze_incident(
+    analysis_run = enqueue_analysis_incident(
         db=db,
         incident_id=incident_id,
         llm_client=llm_client,
@@ -72,14 +73,111 @@ def analyze_incident(
         "incident_id": incident_id,
         "status": analysis_run.status,
         "model_name": analysis_run.model_name,
-        "pipeline_version": (
-            analysis_run.pipeline_version
-        ),
-        "schema_version": (
-            analysis_run.schema_version
-        ),
-        "prompt_version": (
-            analysis_run.prompt_version
-        ),
-        "report": report,
+        "pipeline_version": analysis_run.pipeline_version,
+        "schema_version": analysis_run.schema_version,
+        "prompt_version": analysis_run.prompt_version,
+        "progress_stage": analysis_run.progress_stage,
+        "progress_message": analysis_run.progress_message,
+        "progress_percent": analysis_run.progress_percent,
+        "failure_type": analysis_run.failure_type,
+        "error_message": analysis_run.error_message,
+        "report": analysis_run.report,
     }
+
+
+from sqlalchemy import select
+from fastapi import HTTPException
+
+@router.get(
+    "/{incident_id}/analyze",
+    response_model=IncidentAnalysisResponse,
+)
+def get_latest_analysis(
+    incident_id: str,
+    db: Session = Depends(get_db),
+):
+    stmt = (
+        select(AnalysisRun)
+        .where(AnalysisRun.incident_id == incident_id)
+        .order_by(AnalysisRun.started_at.desc())
+    )
+    analysis_run = db.execute(stmt).scalars().first()
+    
+    if not analysis_run:
+        raise HTTPException(status_code=404, detail="No analysis runs found for this incident")
+
+    return {
+        "analysis_run_id": analysis_run.id,
+        "incident_id": analysis_run.incident_id,
+        "status": analysis_run.status,
+        "model_name": analysis_run.model_name,
+        "pipeline_version": analysis_run.pipeline_version,
+        "schema_version": analysis_run.schema_version,
+        "prompt_version": analysis_run.prompt_version,
+        "progress_stage": analysis_run.progress_stage,
+        "progress_message": analysis_run.progress_message,
+        "progress_percent": analysis_run.progress_percent,
+        "failure_type": analysis_run.failure_type,
+        "error_message": analysis_run.error_message,
+        "report": analysis_run.report,
+    }
+
+
+from fastapi import HTTPException
+
+@router.get(
+    "/{incident_id}/analyze/{run_id}",
+    response_model=IncidentAnalysisResponse,
+)
+def get_analysis_status(
+    incident_id: str,
+    run_id: str,
+    db: Session = Depends(get_db),
+):
+    analysis_run = db.get(AnalysisRun, run_id)
+    if not analysis_run or analysis_run.incident_id != incident_id:
+        raise HTTPException(status_code=404, detail="Analysis run not found")
+
+    return {
+        "analysis_run_id": analysis_run.id,
+        "incident_id": analysis_run.incident_id,
+        "status": analysis_run.status,
+        "model_name": analysis_run.model_name,
+        "pipeline_version": analysis_run.pipeline_version,
+        "schema_version": analysis_run.schema_version,
+        "prompt_version": analysis_run.prompt_version,
+        "progress_stage": analysis_run.progress_stage,
+        "progress_message": analysis_run.progress_message,
+        "progress_percent": analysis_run.progress_percent,
+        "failure_type": analysis_run.failure_type,
+        "error_message": analysis_run.error_message,
+        "report": analysis_run.report,
+    }
+
+
+from app.worker.celery_app import celery_app
+
+@router.post(
+    "/{incident_id}/analyze/{run_id}/cancel",
+)
+def cancel_analysis(
+    incident_id: str,
+    run_id: str,
+    db: Session = Depends(get_db),
+):
+    analysis_run = db.get(AnalysisRun, run_id)
+    if not analysis_run or analysis_run.incident_id != incident_id:
+        raise HTTPException(status_code=404, detail="Analysis run not found")
+
+    if analysis_run.status in ["completed", "failed", "cancelled"]:
+        raise HTTPException(status_code=400, detail=f"Cannot cancel run in state: {analysis_run.status}")
+
+    # Revoke Celery task. If it's already executing, terminate=True kills the worker process.
+    celery_app.control.revoke(run_id, terminate=True)
+
+    analysis_run.status = "cancelled"
+    analysis_run.progress_stage = "cancelled"
+    analysis_run.progress_message = "Analysis was cancelled by the user."
+    db.commit()
+
+    return {"message": "Analysis cancelled successfully"}

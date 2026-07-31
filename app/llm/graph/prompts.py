@@ -120,9 +120,12 @@ Task:
   stage) that directly support the chosen mechanism.
 - contradiction_conflicts_with_mechanism: true only if a contradiction
   identified earlier is about the same mechanism you are proposing here.
-- If no direct evidence supports a conclusion, populate
-  missing_information and either leave root_cause absent or set
-  causal_strength to "unknown".
+- If no direct evidence supports a conclusion (or if evidence is entirely
+  absent), you MUST still provide `incident_summary` and `likely_root_cause` 
+  explaining that there is insufficient data. In this case, leave `root_cause` 
+  absent, set `trigger_status` to "external_unknown", and leave 
+  `observations` and `supporting_evidence_ids` empty. Do NOT omit required 
+  string fields just because evidence is missing.
 """.strip()
 
 

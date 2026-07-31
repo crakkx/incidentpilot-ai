@@ -362,4 +362,10 @@ class IncidentAnalysisResponse(BaseModel):
     schema_version: str
     prompt_version: str
 
-    report: RCAReport
+    progress_stage: str | None = None
+    progress_message: str | None = None
+    progress_percent: int = 0
+    failure_type: str | None = None
+    error_message: str | None = None
+
+    report: RCAReport | None = None

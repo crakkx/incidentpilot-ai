@@ -71,6 +71,33 @@ services:
     volumes:
       - redis_data:/data
 
+  worker:
+    build: .
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: postgresql+psycopg://incidentpilot:incidentpilot@postgres:5432/incidentpilot
+      REDIS_URL: redis://redis:6379/0
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      HF_HOME: /cache/huggingface
+      TORCH_HOME: /cache/torch
+      SENTENCE_TRANSFORMERS_HOME: /cache/sentence-transformers
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: qwen2.5:3b
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
+      MISTRAL_BASE_URL: ${MISTRAL_BASE_URL:-https://api.mistral.ai}
+      MISTRAL_MODEL: ${MISTRAL_MODEL:-mistral-small-latest}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - .:/app
+      - hf_cache:/cache/huggingface
+      - torch_cache:/cache/torch
+      - sentence_transformers_cache:/cache/sentence-transformers
+    command: celery -A app.worker.celery_app worker --loglevel=info
+
 volumes:
   postgres_data:
   redis_data:

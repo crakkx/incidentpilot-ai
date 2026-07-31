@@ -358,9 +358,15 @@ def seed_incident_evidence(db_session):
 def test_analyze_incident_returns_and_saves_report(
     client,
     db_session,
+    monkeypatch,
 ):
-    seeded = seed_incident_evidence(db_session)
+    from app.services.analysis_service import run_analysis_job
+    from app.worker.tasks import run_analysis_task
+
     fake_client = FakeRCAClient()
+    monkeypatch.setattr(run_analysis_task, "delay", lambda run_id: run_analysis_job(run_id, llm_client=fake_client))
+
+    seeded = seed_incident_evidence(db_session)
 
     app.dependency_overrides[get_rca_client] = (
         lambda: fake_client
@@ -376,20 +382,28 @@ def test_analyze_incident_returns_and_saves_report(
             None,
         )
 
-    assert response.status_code == 201
+    assert response.status_code == 202
 
     data = response.json()
 
-    assert data["status"] == "completed"
-    assert data["model_name"] == "mistral-small-latest"
+    assert data["status"] == "queued"
+    
+    # We must fetch the updated run status via GET endpoint since execution was "async" in the background
+    status_response = client.get(
+        f"/incidents/{seeded['incident'].id}/analyze/{data['analysis_run_id']}"
+    )
+    status_data = status_response.json()
+
+    assert status_data["status"] == "completed"
+    assert status_data["model_name"] == "mistral-small-latest"
 
     assert (
-        data["report"]["confidence"]
+        status_data["report"]["confidence"]
         == "high"
     )
 
     assert len(
-        data["report"]["evidence"]
+        status_data["report"]["evidence"]
     ) >= 1
 
     db_session.expire_all()
@@ -434,11 +448,18 @@ def test_analyze_unknown_incident_returns_404(
 def test_invented_evidence_id_marks_run_failed(
     client,
     db_session,
+    monkeypatch,
 ):
+    from app.services.analysis_service import run_analysis_job
+    from app.worker.tasks import run_analysis_task
+    
+    fake_client = InventedEvidenceClient()
+    monkeypatch.setattr(run_analysis_task, "delay", lambda run_id: run_analysis_job(run_id, llm_client=fake_client))
+
     seeded = seed_incident_evidence(db_session)
 
     app.dependency_overrides[get_rca_client] = (
-        lambda: InventedEvidenceClient()
+        lambda: fake_client
     )
 
     try:
@@ -451,7 +472,7 @@ def test_invented_evidence_id_marks_run_failed(
             None,
         )
 
-    assert response.status_code == 502
+    assert response.status_code == 202
 
     db_session.expire_all()
 
@@ -480,11 +501,18 @@ def test_invented_evidence_id_marks_run_failed(
 def test_invalid_llm_output_marks_run_failed(
     client,
     db_session,
+    monkeypatch,
 ):
+    from app.services.analysis_service import run_analysis_job
+    from app.worker.tasks import run_analysis_task
+
+    fake_client = InvalidOutputClient()
+    monkeypatch.setattr(run_analysis_task, "delay", lambda run_id: run_analysis_job(run_id, llm_client=fake_client))
+
     seeded = seed_incident_evidence(db_session)
 
     app.dependency_overrides[get_rca_client] = (
-        lambda: InvalidOutputClient()
+        lambda: fake_client
     )
 
     try:
@@ -497,7 +525,7 @@ def test_invalid_llm_output_marks_run_failed(
             None,
         )
 
-    assert response.status_code == 502
+    assert response.status_code == 202
 
     db_session.expire_all()
 
@@ -547,3 +575,74 @@ def test_invalid_llm_output_marks_run_failed(
             0,
         ]
     )
+
+def test_get_analysis_status_not_found(client):
+    response = client.get("/incidents/missing-incident/analyze/missing-run")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Analysis run not found"
+
+def test_cancel_analysis_success(client, db_session, monkeypatch):
+    from app.worker.celery_app import celery_app
+    monkeypatch.setattr(celery_app.control, "revoke", lambda run_id, terminate: None)
+    
+    seeded = seed_incident_evidence(db_session)
+    
+    run = AnalysisRun(
+        incident_id=seeded["incident"].id,
+        status="queued",
+        model_name="test"
+    )
+    db_session.add(run)
+    db_session.commit()
+    
+    response = client.post(f"/incidents/{seeded['incident'].id}/analyze/{run.id}/cancel")
+    assert response.status_code == 200
+    
+    db_session.refresh(run)
+    assert run.status == "cancelled"
+    assert run.progress_stage == "cancelled"
+
+def test_cancel_analysis_invalid_state(client, db_session):
+    seeded = seed_incident_evidence(db_session)
+    
+    run = AnalysisRun(
+        incident_id=seeded["incident"].id,
+        status="completed",
+        model_name="test"
+    )
+    db_session.add(run)
+    db_session.commit()
+    
+    response = client.post(f"/incidents/{seeded['incident'].id}/analyze/{run.id}/cancel")
+    assert response.status_code == 400
+    assert "Cannot cancel run in state" in response.json()["detail"]
+
+def test_get_latest_analysis_success(client, db_session):
+    seeded = seed_incident_evidence(db_session)
+    
+    run1 = AnalysisRun(
+        incident_id=seeded["incident"].id,
+        status="completed",
+        model_name="test1"
+    )
+    db_session.add(run1)
+    db_session.commit()
+    
+    run2 = AnalysisRun(
+        incident_id=seeded["incident"].id,
+        status="queued",
+        model_name="test2"
+    )
+    db_session.add(run2)
+    db_session.commit()
+    
+    response = client.get(f"/incidents/{seeded['incident'].id}/analyze")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["analysis_run_id"] == str(run2.id)
+    assert data["status"] == "queued"
+
+def test_get_latest_analysis_not_found(client):
+    response = client.get("/incidents/missing-incident/analyze")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "No analysis runs found for this incident"
