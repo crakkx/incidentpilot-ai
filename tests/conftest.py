@@ -15,6 +15,7 @@ from app.main import app  # noqa: E402
 
 
 import_models()
+Base.metadata.create_all(bind=engine)
 
 
 def _assert_test_database() -> None:
