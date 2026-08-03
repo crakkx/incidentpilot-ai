@@ -252,7 +252,7 @@ def fetch_web_search(
         except Exception:
             results = []
 
-    if not results and evidence_payload:
+    if not results and evidence_payload is not None:
         web_chunks = evidence_payload.get("web_search_chunks", [])
         if web_chunks:
             results = web_chunks[:max_results]

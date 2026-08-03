@@ -286,8 +286,19 @@ def run_rca_evals(
         print(f"Dataset: {manifest.dataset_id} v{manifest.dataset_version}")
         print(f"Cases:   {len(cases)}\n")
 
-    case_results: list[dict[str, Any]] = []
-    validation_results: list[CaseValidationResult] = []
+    json_path = output_dir / "rca_eval_latest.json"
+    markdown_path = output_dir / "rca_eval_latest.md"
+
+    merged_cases: dict[str, dict[str, Any]] = {}
+    if json_path.exists():
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                old_report = json.load(f)
+                for c in old_report.get("cases", []):
+                    merged_cases[c["case_id"]] = c
+        except Exception as e:
+            if verbose:
+                print(f"Warning: could not load previous eval results: {e}")
     
     total_cases = len(cases)
 
@@ -296,8 +307,13 @@ def run_rca_evals(
             progress_callback(idx + 1, total_cases, case.title)
 
         result = run_case(case, client, verbose=verbose)
-        case_results.append(result)
+        merged_cases[result["case_id"]] = result
 
+    # Sort merged cases by case_id
+    case_results = [merged_cases[k] for k in sorted(merged_cases.keys())]
+    validation_results: list[CaseValidationResult] = []
+    
+    for result in case_results:
         # Build a dummy CaseValidationResult for metric aggregation when the
         # LLM call itself failed (so metrics still account for the error case).
         if result["status"] == "error":
@@ -305,7 +321,7 @@ def run_rca_evals(
 
             validation_results.append(
                 CaseValidationResult(
-                    case_id=case.id,
+                    case_id=result["case_id"],
                     dimensions=[
                         DimensionResult(
                             dimension=dim,
@@ -333,7 +349,7 @@ def run_rca_evals(
 
             validation_results.append(
                 CVR(
-                    case_id=case.id,
+                    case_id=result["case_id"],
                     dimensions=[
                         DimensionResult(
                             dimension=d["dimension"],
@@ -373,9 +389,6 @@ def run_rca_evals(
     }
 
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    json_path = output_dir / "rca_eval_latest.json"
-    markdown_path = output_dir / "rca_eval_latest.md"
 
     json_path.write_text(
         json.dumps(report, indent=2, default=str),
