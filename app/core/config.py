@@ -29,6 +29,7 @@ class Settings(BaseSettings):
 
     # Hosted Mistral settings
     mistral_api_key: SecretStr | None = None
+    mistral_api_keys: str | None = None
     mistral_base_url: str = "https://api.mistral.ai"
     mistral_model: str = "mistral-small-latest"
     mistral_timeout_seconds: float = 240.0
