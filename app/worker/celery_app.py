@@ -29,10 +29,12 @@ def config_loggers(*args, **kwargs):
 @worker_process_init.connect
 def init_worker(**kwargs):
     try:
-        import mlflow
         import os
-        tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow:5000")
-        mlflow.set_tracking_uri(tracking_uri)
-        mlflow.set_experiment("IncidentPilot-RCA")
+        import mlflow
+        tracking_uri = os.environ.get("MLFLOW_TRACKING_URI")
+        # Only connect to MLflow if explicitly configured.
+        if tracking_uri:
+            mlflow.set_tracking_uri(tracking_uri)
+            mlflow.set_experiment("IncidentPilot-RCA")
     except ImportError:
         pass

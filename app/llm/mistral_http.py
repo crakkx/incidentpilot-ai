@@ -16,9 +16,9 @@ from app.core.config import settings
 from app.llm.errors import InvalidRCAOutputError, MistralRequestError
 
 
-import mlflow
+from app.llm.tracing import mlflow_trace
 
-@mlflow.trace(name="call_mistral_chat", span_type="LLM")
+@mlflow_trace(name="call_mistral_chat", span_type="LLM")
 def call_mistral_chat(
     *,
     messages: list[dict[str, str]],

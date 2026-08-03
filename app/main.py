@@ -11,16 +11,20 @@ from app.core.logging import configure_logging
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     configure_logging()
-    
+
     try:
-        import mlflow
         import os
-        tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow:5000")
-        mlflow.set_tracking_uri(tracking_uri)
-        mlflow.set_experiment("IncidentPilot-RCA")
+        import mlflow
+        tracking_uri = os.environ.get("MLFLOW_TRACKING_URI")
+        # Only connect to MLflow if explicitly configured.
+        # In CI / unit-test environments the MLflow server is not running,
+        # so we skip initialisation entirely to avoid a connection error.
+        if tracking_uri:
+            mlflow.set_tracking_uri(tracking_uri)
+            mlflow.set_experiment("IncidentPilot-RCA")
     except ImportError:
         pass
-        
+
     yield
 
 

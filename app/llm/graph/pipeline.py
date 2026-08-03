@@ -114,10 +114,15 @@ class GraphRCAClient(RCAClient):
             "call_log": [],
         }
 
+        import os
         import mlflow
+        _mlflow_enabled = bool(os.environ.get("MLFLOW_TRACKING_URI"))
         trace_req_id = None
-        with mlflow.start_span(name=f"GraphRCA_{self.model_name}") as span:
-            trace_req_id = span.request_id
+        if _mlflow_enabled:
+            with mlflow.start_span(name=f"GraphRCA_{self.model_name}") as span:
+                trace_req_id = span.request_id
+                final_state = self._graph.invoke(initial_state)
+        else:
             final_state = self._graph.invoke(initial_state)
 
         extraction = final_state["extraction"]
@@ -176,15 +181,15 @@ class GraphRCAClient(RCAClient):
         raw_output = report.model_dump_json(indent=2)
         # Trigger-Based Tracing:
         # The user only wants to see FAILED cases in MLflow.
-        # Since we reached the end of the pipeline without exceptions, we delete the trace.
-        import mlflow
+        # Since we reached the end of the pipeline without exceptions, delete the trace.
         if trace_req_id:
             try:
+                import mlflow
                 client = mlflow.MlflowClient()
                 exp = client.get_experiment_by_name("IncidentPilot-RCA")
                 if exp:
                     client.delete_traces(
-                        experiment_id=exp.experiment_id, 
+                        experiment_id=exp.experiment_id,
                         trace_ids=[trace_req_id]
                     )
             except Exception:
