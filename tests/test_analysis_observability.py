@@ -223,6 +223,7 @@ class SuccessfulDebugClient(RCAClient):
     def generate_rca_with_debug(
         self,
         evidence_payload: dict[str, Any],
+        **kwargs: Any,
     ) -> RCAGenerationResult:
         report = self.generate_rca(
             evidence_payload
@@ -294,6 +295,7 @@ class SchemaFailureClient(RCAClient):
     def generate_rca_with_debug(
         self,
         evidence_payload: dict[str, Any],
+        **kwargs: Any,
     ) -> RCAGenerationResult:
         raise self._error()
 
@@ -369,6 +371,7 @@ class InventedEvidenceClient(RCAClient):
     def generate_rca_with_debug(
         self,
         evidence_payload: dict[str, Any],
+        **kwargs: Any,
     ) -> RCAGenerationResult:
         report = self.generate_rca(
             evidence_payload

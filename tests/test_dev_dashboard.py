@@ -203,6 +203,7 @@ class DashboardFakeClient(RCAClient):
     def generate_rca_with_debug(
         self,
         evidence_payload: dict[str, Any],
+        **kwargs: Any,
     ) -> RCAGenerationResult:
         report = self._report(
             evidence_payload

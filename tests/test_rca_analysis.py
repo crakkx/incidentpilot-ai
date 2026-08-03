@@ -223,6 +223,7 @@ class InvalidOutputClient(RCAClient):
     def generate_rca_with_debug(
         self,
         evidence_payload,
+        **kwargs,
     ) -> RCAGenerationResult:
         raise self._build_error()
 
