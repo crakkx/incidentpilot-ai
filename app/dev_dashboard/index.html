@@ -2265,6 +2265,13 @@
     async function renderBatchReport() {
         try {
             const report = await requestJson("/dev/api/eval-dataset/latest-report");
+            let v0Report = null;
+            try {
+                v0Report = await requestJson("/dev/api/eval-dataset/v0-report");
+            } catch (e) {
+                console.warn("Could not fetch v0 report", e);
+            }
+
             const container = document.getElementById("batchResultsContainer");
             const casesHtml = report.cases.map(c => {
                 let issuesHtml = "";
@@ -2302,8 +2309,65 @@
             const avgRoundsVal = report.metrics.avg_investigation_rounds ?? 0;
             const avgToolsVal = report.metrics.avg_tool_calls ?? 0;
 
+            let comparisonHtml = "";
+            if (v0Report && v0Report.metrics) {
+                const v0PassRate = v0Report.metrics.overall_pass_rate ?? v0Report.metrics.pass_rate ?? 0;
+                const v0OverallScore = v0Report.metrics.mean_overall_score ?? v0Report.metrics.overall_score ?? 0;
+                const v0Rounds = v0Report.metrics.avg_investigation_rounds ?? 0;
+                const v0Tools = v0Report.metrics.avg_tool_calls ?? 0;
+
+                const deltaPassRate = passRateVal - v0PassRate;
+                const deltaScore = overallScoreVal - v0OverallScore;
+
+                const passRateDeltaStr = (deltaPassRate >= 0 ? "+" : "") + formatRatio(deltaPassRate);
+                const scoreDeltaStr = (deltaScore >= 0 ? "+" : "") + formatNumber(deltaScore);
+
+                comparisonHtml = `
+                <div class="card" style="margin-bottom: 20px; background: var(--panel-soft);">
+                  <h4 style="margin: 0 0 12px; color: var(--text);">v0 (Baseline) vs v1 (Agentic) Comparison</h4>
+                  <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                     <thead>
+                       <tr>
+                         <th style="text-align: left; padding: 8px; color: #aeb7ca;">Metric</th>
+                         <th style="text-align: right; padding: 8px; color: #aeb7ca;">v0 Baseline</th>
+                         <th style="text-align: right; padding: 8px; color: #aeb7ca;">v1 Agentic</th>
+                         <th style="text-align: right; padding: 8px; color: #aeb7ca;">Delta</th>
+                       </tr>
+                     </thead>
+                     <tbody>
+                       <tr style="border-bottom: 1px solid var(--border);">
+                         <td style="padding: 8px;"><strong>Pass Rate</strong></td>
+                         <td style="text-align: right; padding: 8px;">${formatRatio(v0PassRate)}</td>
+                         <td style="text-align: right; padding: 8px; font-weight: bold; color: var(--success);">${formatRatio(passRateVal)}</td>
+                         <td style="text-align: right; padding: 8px; color: ${deltaPassRate >= 0 ? 'var(--success)' : 'var(--danger)'};">${passRateDeltaStr}</td>
+                       </tr>
+                       <tr style="border-bottom: 1px solid var(--border);">
+                         <td style="padding: 8px;"><strong>Mean Overall Score</strong></td>
+                         <td style="text-align: right; padding: 8px;">${formatNumber(v0OverallScore)}</td>
+                         <td style="text-align: right; padding: 8px; font-weight: bold;">${formatNumber(overallScoreVal)}</td>
+                         <td style="text-align: right; padding: 8px; color: ${deltaScore >= 0 ? 'var(--success)' : 'var(--danger)'};">${scoreDeltaStr}</td>
+                       </tr>
+                       <tr style="border-bottom: 1px solid var(--border);">
+                         <td style="padding: 8px;"><strong>Avg Investigation Rounds</strong></td>
+                         <td style="text-align: right; padding: 8px;">${formatNumber(v0Rounds)}</td>
+                         <td style="text-align: right; padding: 8px;">${formatNumber(avgRoundsVal)}</td>
+                         <td style="text-align: right; padding: 8px; color: var(--muted);">${formatNumber(avgRoundsVal - v0Rounds)}</td>
+                       </tr>
+                       <tr>
+                         <td style="padding: 8px;"><strong>Avg Tool Calls</strong></td>
+                         <td style="text-align: right; padding: 8px;">${formatNumber(v0Tools)}</td>
+                         <td style="text-align: right; padding: 8px;">${formatNumber(avgToolsVal)}</td>
+                         <td style="text-align: right; padding: 8px; color: var(--muted);">${formatNumber(avgToolsVal - v0Tools)}</td>
+                       </tr>
+                     </tbody>
+                  </table>
+                </div>
+                `;
+            }
+
             container.innerHTML = `
                 <h3>Latest Evaluation Report (v1 Agentic Pipeline)</h3>
+                ${comparisonHtml}
                 <div class="grid versions" style="margin-bottom: 16px;">
                   <div class="card metric-card">
                     <div class="label">Pipeline</div>
@@ -2340,6 +2404,7 @@
                   </table>
                 </div>
             `;
+
 
         } catch (e) {
             document.getElementById("batchResultsContainer").innerHTML = `<p class="error">Could not load report: ${e.message}</p>`;

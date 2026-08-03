@@ -257,6 +257,23 @@ def latest_eval_report():
     return report
 
 
+@router.get("/api/eval-dataset/v0-report")
+def v0_eval_report():
+    report_path = PROJECT_ROOT / "reports" / "rca_eval_v0_baseline.json"
+    report = _read_json(report_path)
+    if not report:
+        # Fall back to latest-report if v0 baseline file missing
+        report_path = PROJECT_ROOT / "reports" / "rca_eval_latest.json"
+        report = _read_json(report_path)
+    if not report:
+        raise HTTPException(
+            status_code=404,
+            detail="No v0 baseline report found.",
+        )
+    return report
+
+
+
 
 
 @router.get("/api/baseline")
