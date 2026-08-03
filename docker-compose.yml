@@ -31,6 +31,7 @@ services:
       MISTRAL_TEMPERATURE: ${MISTRAL_TEMPERATURE:-0.0}
       MISTRAL_MAX_TOKENS: ${MISTRAL_MAX_TOKENS:-1800}
       MISTRAL_RANDOM_SEED: ${MISTRAL_RANDOM_SEED:-42}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
 
       RCA_MAX_LOGS: 50
       RCA_MAX_METRICS: 50
@@ -90,6 +91,7 @@ services:
       MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
       MISTRAL_BASE_URL: ${MISTRAL_BASE_URL:-https://api.mistral.ai}
       MISTRAL_MODEL: ${MISTRAL_MODEL:-mistral-small-latest}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
       MLFLOW_TRACKING_URI: http://mlflow:5000
       LANGGRAPH_CHECKPOINT_URL: postgresql+psycopg://incidentpilot:incidentpilot@postgres:5432/incidentpilot
     depends_on:
