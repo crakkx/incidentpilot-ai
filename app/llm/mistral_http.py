@@ -114,20 +114,23 @@ def call_mistral_chat(
                     },
                     json=payload,
                 )
-                if resp.status_code == 429 and attempt_idx < len(keys) - 1:
+                status_code = getattr(resp, "status_code", 200)
+                if status_code == 429 and attempt_idx < len(keys) - 1:
                     last_exc = MistralRequestError(f"HTTP 429 Rate Limit on key {api_key[:8]}... Retrying with next key.")
                     continue
                 resp.raise_for_status()
                 response = resp
                 break
         except httpx.HTTPStatusError as exc:
-            if exc.response.status_code == 429 and attempt_idx < len(keys) - 1:
+            status_code = getattr(getattr(exc, "response", None), "status_code", 429)
+            if status_code == 429 and attempt_idx < len(keys) - 1:
                 last_exc = exc
                 continue
             raise MistralRequestError(
                 "Could not generate RCA with Mistral. "
                 f"model={model_name}, url={base_url}, error={exc}"
             ) from exc
+
         except httpx.HTTPError as exc:
             raise MistralRequestError(
                 "Could not generate RCA with Mistral. "
