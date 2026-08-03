@@ -324,14 +324,38 @@ def execute_analysis_run(
 
         report = generation_result.report
 
-        analysis_run.status = "completed"
-        analysis_run.progress_stage = (
-            "completed"
-        )
-        analysis_run.progress_message = (
-            "Analysis completed successfully."
-        )
-        analysis_run.progress_percent = 100
+        proposal = {
+            "incident_id": str(analysis_run.incident_id),
+            "root_cause_summary": report.likely_root_cause or "Root cause identified.",
+            "actions": [
+                {
+                    "action": act,
+                    "priority": "immediate" if idx == 0 else "short_term",
+                    "target_entity": getattr(report.root_cause, "primary_entity", None) if report.root_cause else None,
+                    "rationale": "Action recommended based on analysis evidence.",
+                }
+                for idx, act in enumerate(report.recommended_actions)
+            ],
+            "confidence_level": report.confidence,
+            "status": "pending_approval" if report.confidence == "low" else "approved",
+            "proposed_at": datetime.utcnow().isoformat(),
+        }
+        analysis_run.remediation_proposal = proposal
+
+        if report.confidence == "low":
+            analysis_run.status = "awaiting_approval"
+            analysis_run.progress_stage = "awaiting_approval"
+            analysis_run.progress_message = (
+                "Analysis completed with low confidence. Human approval gate triggered."
+            )
+            analysis_run.progress_percent = 95
+        else:
+            analysis_run.status = "completed"
+            analysis_run.progress_stage = "completed"
+            analysis_run.progress_message = (
+                "Analysis completed successfully."
+            )
+            analysis_run.progress_percent = 100
 
         analysis_run.summary = (
             report.incident_summary

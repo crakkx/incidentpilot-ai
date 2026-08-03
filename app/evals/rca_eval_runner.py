@@ -225,7 +225,10 @@ def run_case(
         ],
         "raw_output": report.model_dump(mode="json"),
         "validation": generation_result.metadata.get("validation"),
+        "investigation_rounds": generation_result.metadata.get("investigation_rounds", 0),
+        "tool_calls": len(generation_result.metadata.get("tool_results", [])),
     }
+
 
 
 # ---------------------------------------------------------------------------
@@ -343,7 +346,10 @@ def run_rca_evals(
                 )
             )
 
-    metrics: RCAEvalMetrics = compute_metrics(validation_results)
+    rounds_list = [r.get("investigation_rounds", 0) for r in case_results]
+    tool_calls_list = [r.get("tool_calls", 0) for r in case_results]
+    metrics: RCAEvalMetrics = compute_metrics(validation_results, rounds_list, tool_calls_list)
+
 
     if verbose:
         print()

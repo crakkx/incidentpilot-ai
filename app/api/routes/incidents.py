@@ -181,3 +181,90 @@ def cancel_analysis(
     db.commit()
 
     return {"message": "Analysis cancelled successfully"}
+
+
+from pydantic import BaseModel
+
+class RejectRemediationRequest(BaseModel):
+    reason: str | None = None
+
+
+@router.get(
+    "/{incident_id}/remediation",
+)
+def get_remediation_proposal(
+    incident_id: str,
+    db: Session = Depends(get_db),
+):
+    stmt = (
+        select(AnalysisRun)
+        .where(AnalysisRun.incident_id == incident_id)
+        .order_by(AnalysisRun.started_at.desc())
+    )
+    analysis_run = db.execute(stmt).scalars().first()
+    if not analysis_run or not analysis_run.remediation_proposal:
+        raise HTTPException(status_code=404, detail="No remediation proposal found for this incident")
+
+    return analysis_run.remediation_proposal
+
+
+@router.post(
+    "/{incident_id}/remediation/approve",
+)
+def approve_remediation(
+    incident_id: str,
+    db: Session = Depends(get_db),
+):
+    stmt = (
+        select(AnalysisRun)
+        .where(AnalysisRun.incident_id == incident_id)
+        .order_by(AnalysisRun.started_at.desc())
+    )
+    analysis_run = db.execute(stmt).scalars().first()
+    if not analysis_run or not analysis_run.remediation_proposal:
+        raise HTTPException(status_code=404, detail="No remediation proposal found for this incident")
+
+    proposal = dict(analysis_run.remediation_proposal)
+    proposal["status"] = "approved"
+    analysis_run.remediation_proposal = proposal
+    if analysis_run.status == "awaiting_approval":
+        analysis_run.status = "completed"
+        analysis_run.progress_stage = "completed"
+        analysis_run.progress_message = "Remediation proposal approved by human operator."
+        analysis_run.progress_percent = 100
+
+    db.commit()
+    return {"message": "Remediation proposal approved", "proposal": proposal}
+
+
+@router.post(
+    "/{incident_id}/remediation/reject",
+)
+def reject_remediation(
+    incident_id: str,
+    payload: RejectRemediationRequest | None = None,
+    db: Session = Depends(get_db),
+):
+    stmt = (
+        select(AnalysisRun)
+        .where(AnalysisRun.incident_id == incident_id)
+        .order_by(AnalysisRun.started_at.desc())
+    )
+    analysis_run = db.execute(stmt).scalars().first()
+    if not analysis_run or not analysis_run.remediation_proposal:
+        raise HTTPException(status_code=404, detail="No remediation proposal found for this incident")
+
+    proposal = dict(analysis_run.remediation_proposal)
+    proposal["status"] = "rejected"
+    if payload and payload.reason:
+        proposal["rejection_reason"] = payload.reason
+
+    analysis_run.remediation_proposal = proposal
+    if analysis_run.status == "awaiting_approval":
+        analysis_run.status = "rejected"
+        analysis_run.progress_stage = "rejected"
+        analysis_run.progress_message = f"Remediation proposal rejected by human operator. Reason: {proposal.get('rejection_reason', 'None')}"
+
+    db.commit()
+    return {"message": "Remediation proposal rejected", "proposal": proposal}
+

@@ -36,7 +36,7 @@ from app.core.config import settings
 from app.llm.graph.schemas import HypothesisResult
 from app.llm.graph.state import GraphState
 from app.llm.graph.nodes import _compact, _invoke_node, _record_call
-from app.llm.graph.tools import fetch_logs, fetch_metrics, fetch_runbook_chunks
+from app.llm.graph.tools import fetch_logs, fetch_metrics, fetch_runbook_chunks, fetch_web_search
 from app.llm.tracing import mlflow_trace
 
 # ── system prompt ────────────────────────────────────────────────────────────
@@ -64,12 +64,13 @@ Strict grounding rules:
 
 _LOG_KEYWORDS = {"log", "error", "warn", "exception", "trace", "stderr", "stdout"}
 _METRIC_KEYWORDS = {"metric", "cpu", "mem", "memory", "latency", "request", "throughput", "rps", "p99", "p95"}
+_WEB_KEYWORDS = {"web", "search", "docs", "google", "internet", "public", "error_code", "cve", "github", "stack", "overflow", "external"}
 
 
 def _select_tool(gap_query: str) -> str:
     """Deterministically pick a tool name from a gap query string.
 
-    Returns one of: 'fetch_logs', 'fetch_metrics', 'fetch_runbook_chunks'.
+    Returns one of: 'fetch_logs', 'fetch_metrics', 'fetch_runbook_chunks', 'fetch_web_search'.
     """
     q = gap_query.lower()
     tokens = set(q.split())
@@ -78,7 +79,10 @@ def _select_tool(gap_query: str) -> str:
         return "fetch_logs"
     if tokens & _METRIC_KEYWORDS:
         return "fetch_metrics"
+    if tokens & _WEB_KEYWORDS:
+        return "fetch_web_search"
     return "fetch_runbook_chunks"
+
 
 
 def _extract_service_name(gap_query: str, evidence_payload: dict[str, Any]) -> str:
@@ -219,6 +223,17 @@ def run_gap_tool_node(
         seen = {json.dumps(m, default=str) for m in existing_metrics}
         new_metrics = [m for m in result if json.dumps(m, default=str) not in seen]
         evidence_payload["metrics"] = existing_metrics + new_metrics
+
+    elif tool_name == "fetch_web_search":
+        result = fetch_web_search(
+            query=gap,
+            max_results=3,
+            evidence_payload=evidence_payload,
+        )
+        existing_web = evidence_payload.get("web_search_chunks", [])
+        seen = {c.get("content", "") for c in existing_web}
+        new_web = [c for c in result if c.get("content", "") not in seen]
+        evidence_payload["web_search_chunks"] = existing_web + new_web
 
     else:  # fetch_runbook_chunks
         result = fetch_runbook_chunks(

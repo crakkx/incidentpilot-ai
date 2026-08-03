@@ -52,8 +52,15 @@ class RCAEvalMetrics:
     mean_overall_score: float
     """Mean of per-case :attr:`~CaseValidationResult.overall_score`."""
 
+    avg_investigation_rounds: float = 0.0
+    """Average investigation rounds per case."""
+
+    avg_tool_calls: float = 0.0
+    """Average tool calls per case."""
+
     def to_dict(self) -> dict[str, float | int]:
         return asdict(self)
+
 
     def __str__(self) -> str:  # noqa: D401
         return (
@@ -120,18 +127,10 @@ def _dimension_pass_rate(
 
 def compute_metrics(
     results: list[CaseValidationResult],
+    rounds_list: list[int] | None = None,
+    tool_calls_list: list[int] | None = None,
 ) -> RCAEvalMetrics:
-    """Compute :class:`RCAEvalMetrics` from a list of case results.
-
-    Args:
-        results: One result per evaluated case from :func:`validate_case`.
-
-    Returns:
-        Aggregated :class:`RCAEvalMetrics`.
-
-    Raises:
-        ValueError: When ``results`` is empty.
-    """
+    """Compute :class:`RCAEvalMetrics` from a list of case results."""
     if not results:
         raise ValueError("Cannot compute metrics from an empty result list.")
 
@@ -139,6 +138,9 @@ def compute_metrics(
 
     overall_pass_rate = sum(1 for r in results if r.passed) / n
     mean_overall_score = statistics.fmean(r.overall_score for r in results)
+
+    avg_rounds = statistics.fmean(rounds_list) if rounds_list else 0.0
+    avg_tools = statistics.fmean(tool_calls_list) if tool_calls_list else 0.0
 
     return RCAEvalMetrics(
         case_count=n,
@@ -163,7 +165,10 @@ def compute_metrics(
         ),
         overall_pass_rate=overall_pass_rate,
         mean_overall_score=mean_overall_score,
+        avg_investigation_rounds=avg_rounds,
+        avg_tool_calls=avg_tools,
     )
+
 
 
 # ---------------------------------------------------------------------------

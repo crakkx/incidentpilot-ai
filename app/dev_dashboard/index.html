@@ -2290,24 +2290,40 @@
                         ${escapeHtml(c.status)}
                         ${issuesHtml}
                     </td>
+                    <td style="padding: 12px 10px; vertical-align: top; color: var(--muted);">
+                        Rounds: ${c.investigation_rounds ?? 0}<br>Tools: ${c.tool_calls ?? 0}
+                    </td>
                     <td style="padding: 12px 10px; vertical-align: top;">${escapeHtml(formatNumber(c.overall_score))}</td>
                 </tr>`;
             }).join("");
 
+            const overallScoreVal = report.metrics.mean_overall_score ?? report.metrics.overall_score ?? 0;
+            const passRateVal = report.metrics.overall_pass_rate ?? report.metrics.pass_rate ?? 0;
+            const avgRoundsVal = report.metrics.avg_investigation_rounds ?? 0;
+            const avgToolsVal = report.metrics.avg_tool_calls ?? 0;
+
             container.innerHTML = `
-                <h3>Latest Evaluation Report</h3>
+                <h3>Latest Evaluation Report (v1 Agentic Pipeline)</h3>
                 <div class="grid versions" style="margin-bottom: 16px;">
                   <div class="card metric-card">
                     <div class="label">Pipeline</div>
-
+                    <div class="value">${escapeHtml(report.pipeline || 'graph (v1 agentic)')}</div>
                   </div>
                   <div class="card metric-card">
                     <div class="label">Overall Score</div>
-                    <div class="value score">${escapeHtml(formatNumber(report.metrics.overall_score))}</div>
+                    <div class="value score">${escapeHtml(formatNumber(overallScoreVal))}</div>
                   </div>
                   <div class="card metric-card">
                     <div class="label">Pass Rate</div>
-                    <div class="value">${escapeHtml(formatRatio(report.metrics.pass_rate))}</div>
+                    <div class="value">${escapeHtml(formatRatio(passRateVal))}</div>
+                  </div>
+                  <div class="card metric-card">
+                    <div class="label">Avg Rounds</div>
+                    <div class="value">${escapeHtml(formatNumber(avgRoundsVal))}</div>
+                  </div>
+                  <div class="card metric-card">
+                    <div class="label">Avg Tool Calls</div>
+                    <div class="value">${escapeHtml(formatNumber(avgToolsVal))}</div>
                   </div>
                 </div>
                 <div style="overflow-x: auto;">
@@ -2316,6 +2332,7 @@
                        <tr>
                          <th style="text-align: left; padding: 10px; color: #aeb7ca; border-bottom: 1px solid var(--border);">Case ID</th>
                          <th style="text-align: left; padding: 10px; color: #aeb7ca; border-bottom: 1px solid var(--border);">Status & Issues</th>
+                         <th style="text-align: left; padding: 10px; color: #aeb7ca; border-bottom: 1px solid var(--border);">Agent Activity</th>
                          <th style="text-align: left; padding: 10px; color: #aeb7ca; border-bottom: 1px solid var(--border);">Score</th>
                        </tr>
                      </thead>
@@ -2323,6 +2340,7 @@
                   </table>
                 </div>
             `;
+
         } catch (e) {
             document.getElementById("batchResultsContainer").innerHTML = `<p class="error">Could not load report: ${e.message}</p>`;
         }

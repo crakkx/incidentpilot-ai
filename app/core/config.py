@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     mistral_max_tokens: int = 1800
     mistral_random_seed: int = 42
 
+    # Web Search settings (Tavily)
+    tavily_api_key: SecretStr | None = None
+
     # Limit the evidence sent to the small local model
     rca_max_logs: int = 20
     rca_max_metrics: int = 20

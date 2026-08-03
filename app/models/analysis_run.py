@@ -128,3 +128,8 @@ class AnalysisRun(Base):
         JSON,
         nullable=True,
     )
+
+    remediation_proposal = Column(
+        JSON,
+        nullable=True,
+    )
