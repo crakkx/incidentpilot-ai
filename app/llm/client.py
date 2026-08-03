@@ -48,6 +48,7 @@ class RCAClient(ABC):
     def generate_rca_with_debug(
         self,
         evidence_payload: dict[str, Any],
+        **kwargs: Any,
     ) -> RCAGenerationResult:
         report = self.generate_rca(
             evidence_payload
