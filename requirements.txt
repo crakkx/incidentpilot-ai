@@ -13,6 +13,7 @@ pydantic-settings
 pgvector
 sentence-transformers
 langgraph
+langgraph-checkpoint-postgres
 celery
 mlflow
 prometheus-client

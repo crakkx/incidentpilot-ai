@@ -279,7 +279,8 @@ def execute_analysis_run(
         generation_result = (
             llm_client
             .generate_rca_with_debug(
-                evidence_payload
+                evidence_payload,
+                thread_id=str(analysis_run.id),
             )
         )
 

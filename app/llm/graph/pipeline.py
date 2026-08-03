@@ -1,27 +1,49 @@
 """LangGraph wiring for the RCA multi-node pipeline.
 
-Graph shape::
+v0 (straight pipeline) graph shape::
 
     extract -> cross_validate -> synthesize -> validate -> recommend_actions -> END
 
-Nominal cost is 5 Mistral calls per report. The ``validate`` node runs an
-adversarial pass over the synthesized root cause and re-judges its
-``causal_strength`` / ``trigger_status`` before confidence is calibrated;
-it skips its call (4 calls that report) when synthesis produced no
-root_cause to attack. Each node may additionally trigger a targeted
-schema-repair re-prompt of itself (see ``app.llm.graph.nodes``), charged
-against a run-wide ``repairs_used`` budget capped at
-``settings.rca_graph_max_repairs`` (default 3) — so the worst case for one
-report is ``5 + rca_graph_max_repairs`` calls (8 with defaults).
+v1 (agentic) graph shape::
+
+    extract -> hypothesis -> investigate_gap ──→ (loop if gaps remain AND rounds < max)
+                                            └──→ cross_validate -> synthesize -> validate
+                                                  -> recommend_actions -> END
+
+Nominal LLM call count
+-----------------------
+- v0 : 5 calls (extract, cross_validate, synthesize, validate, recommend_actions)
+- v1 : 7 calls (+ hypothesis = 6, tool calls are DB-only = 0 extra, same final 5)
+- Worst case v1: 7 + rca_graph_max_repairs = 10
+
+The ``validate`` node runs an adversarial pass and may be skipped (4 calls
+that report) when synthesis produced no root_cause to attack.  Each node may
+also trigger schema-repair re-prompts charged against a run-wide
+``repairs_used`` budget capped at ``settings.rca_graph_max_repairs`` (default 3).
 
 ``GraphRCAClient`` implements the same :class:`~app.llm.client.RCAClient`
 interface as :class:`~app.llm.client.MistralRCAClient`, so it is a drop-in
 replacement wherever an ``RCAClient`` is used (``analysis_service``,
 ``rca_eval_runner``, the dev dashboard) — see ``get_rca_client`` in
 ``app.llm.client``.
+
+PostgreSQL checkpointer (Group 2)
+-----------------------------------
+When ``LANGGRAPH_CHECKPOINT_URL`` is set in the environment, the graph is
+compiled with a ``PostgresSaver`` checkpointer that persists full graph state
+after every node. The Celery task passes ``analysis_run_id`` as the LangGraph
+``thread_id``, so:
+
+- On first run → starts fresh.
+- On worker crash / retry → resumes from the last successful node rather than
+  restarting from scratch.
+- ``PostgresSaver.setup()`` is called once at pipeline instantiation so the
+  checkpoint tables are created automatically (no separate Alembic migration
+  needed — LangGraph owns these tables).
 """
 
 import json
+import os
 from typing import Any
 
 from langgraph.graph import END, StateGraph
@@ -30,6 +52,7 @@ from pydantic import ValidationError
 from app.core.config import settings
 from app.llm.client import RCAClient, RCAGenerationResult
 from app.llm.errors import InvalidRCAOutputError
+from app.llm.graph.agent_nodes import run_gap_tool_node, run_hypothesis_node
 from app.llm.graph.confidence import calibrate_confidence
 from app.llm.graph.nodes import (
     run_action_node,
@@ -42,12 +65,39 @@ from app.llm.graph.state import GraphState
 from app.schemas.analysis import RCAReport
 
 
-def _build_graph(*, model_name: str, max_repairs: int):
+# ── loop router ───────────────────────────────────────────────────────────────
+
+def _should_investigate(state: GraphState) -> str:
+    """Conditional edge: keep investigating if gaps remain AND under the round cap."""
+    gap_queries: list[str] = state.get("gap_queries", [])
+    rounds: int = state.get("investigation_rounds", 0)
+
+    if gap_queries and rounds < settings.rca_agent_max_rounds:
+        return "investigate"
+    return "synthesise"
+
+
+# ── graph builder ─────────────────────────────────────────────────────────────
+
+def _build_graph(*, model_name: str, max_repairs: int, checkpointer=None):
     graph = StateGraph(GraphState)
 
+    # ── node registration ──────────────────────────────────────────────────────
     graph.add_node(
         "extract",
         lambda state: run_extraction_node(
+            state, model_name=model_name, max_repairs=max_repairs
+        ),
+    )
+    graph.add_node(
+        "hypothesis",
+        lambda state: run_hypothesis_node(
+            state, model_name=model_name, max_repairs=max_repairs
+        ),
+    )
+    graph.add_node(
+        "investigate_gap",
+        lambda state: run_gap_tool_node(
             state, model_name=model_name, max_repairs=max_repairs
         ),
     )
@@ -76,15 +126,31 @@ def _build_graph(*, model_name: str, max_repairs: int):
         ),
     )
 
+    # ── edges ──────────────────────────────────────────────────────────────────
     graph.set_entry_point("extract")
-    graph.add_edge("extract", "cross_validate")
+    graph.add_edge("extract", "hypothesis")
+
+    # Agentic investigation loop
+    graph.add_conditional_edges(
+        "hypothesis",
+        _should_investigate,
+        {"investigate": "investigate_gap", "synthesise": "cross_validate"},
+    )
+    graph.add_conditional_edges(
+        "investigate_gap",
+        _should_investigate,
+        {"investigate": "investigate_gap", "synthesise": "cross_validate"},
+    )
+
     graph.add_edge("cross_validate", "synthesize")
     graph.add_edge("synthesize", "validate")
     graph.add_edge("validate", "recommend_actions")
     graph.add_edge("recommend_actions", END)
 
-    return graph.compile()
+    return graph.compile(checkpointer=checkpointer)
 
+
+# ── client ────────────────────────────────────────────────────────────────────
 
 class GraphRCAClient(RCAClient):
     provider = "mistral"
@@ -93,10 +159,47 @@ class GraphRCAClient(RCAClient):
     def __init__(self, model_name: str | None = None) -> None:
         self.model_name = model_name or settings.mistral_model
         self.max_repairs = settings.rca_graph_max_repairs
+
+        checkpointer = self._init_checkpointer()
         self._graph = _build_graph(
             model_name=self.model_name,
             max_repairs=self.max_repairs,
+            checkpointer=checkpointer,
         )
+
+    def _init_checkpointer(self):
+        """Initialise the Postgres checkpointer if configured.
+
+        Returns None when ``LANGGRAPH_CHECKPOINT_URL`` is not set (CI / tests),
+        in which case the graph runs without persistence (existing behaviour).
+        """
+        checkpoint_url = os.environ.get("LANGGRAPH_CHECKPOINT_URL")
+        if not checkpoint_url:
+            return None
+
+        try:
+            from langgraph.checkpoint.postgres import PostgresSaver
+            # Convert SQLAlchemy URL scheme to raw psycopg DSN
+            dsn = checkpoint_url.replace(
+                "postgresql+psycopg://", "postgresql://"
+            ).replace(
+                "postgresql+psycopg2://", "postgresql://"
+            )
+            conn = __import__("psycopg").connect(
+                dsn, autocommit=True, prepare_threshold=0
+            )
+            saver = PostgresSaver(conn)
+            saver.setup()  # creates checkpoint tables if they don't exist
+            return saver
+        except Exception as exc:
+            # Gracefully degrade — the pipeline still works, just without
+            # crash-recovery.
+            import logging
+            logging.getLogger(__name__).warning(
+                "LangGraph checkpointer unavailable — running without "
+                "persistence. Error: %s", exc
+            )
+            return None
 
     def generate_rca(
         self,
@@ -107,6 +210,7 @@ class GraphRCAClient(RCAClient):
     def generate_rca_with_debug(
         self,
         evidence_payload: dict[str, Any],
+        thread_id: str | None = None,
     ) -> RCAGenerationResult:
         initial_state: GraphState = {
             "evidence_payload": evidence_payload,
@@ -114,16 +218,22 @@ class GraphRCAClient(RCAClient):
             "call_log": [],
         }
 
-        import os
-        import mlflow
-        _mlflow_enabled = bool(os.environ.get("MLFLOW_TRACKING_URI"))
+        # LangGraph config — thread_id scopes the checkpoint to this analysis run
+        invoke_config: dict[str, Any] = {}
+        if thread_id and self._graph.checkpointer is not None:
+            invoke_config = {"configurable": {"thread_id": thread_id}}
+
+        import os as _os
+        import mlflow as _mlflow
+        _mlflow_enabled = bool(_os.environ.get("MLFLOW_TRACKING_URI"))
         trace_req_id = None
+
         if _mlflow_enabled:
-            with mlflow.start_span(name=f"GraphRCA_{self.model_name}") as span:
+            with _mlflow.start_span(name=f"GraphRCA_{self.model_name}") as span:
                 trace_req_id = span.request_id
-                final_state = self._graph.invoke(initial_state)
+                final_state = self._graph.invoke(initial_state, config=invoke_config)
         else:
-            final_state = self._graph.invoke(initial_state)
+            final_state = self._graph.invoke(initial_state, config=invoke_config)
 
         extraction = final_state["extraction"]
         contradiction = final_state["contradiction"]
@@ -179,18 +289,17 @@ class GraphRCAClient(RCAClient):
             ) from exc
 
         raw_output = report.model_dump_json(indent=2)
+
         # Trigger-Based Tracing:
-        # The user only wants to see FAILED cases in MLflow.
-        # Since we reached the end of the pipeline without exceptions, delete the trace.
+        # Only keep MLflow traces for FAILED cases — delete this one on success.
         if trace_req_id:
             try:
-                import mlflow
-                client = mlflow.MlflowClient()
+                client = _mlflow.MlflowClient()
                 exp = client.get_experiment_by_name("IncidentPilot-RCA")
                 if exp:
                     client.delete_traces(
                         experiment_id=exp.experiment_id,
-                        trace_ids=[trace_req_id]
+                        trace_ids=[trace_req_id],
                     )
             except Exception:
                 pass
@@ -205,12 +314,21 @@ class GraphRCAClient(RCAClient):
             for index, entry in enumerate(call_log)
         ]
 
+        # Include agentic metadata in the result
+        tool_results = final_state.get("tool_results", [])
+        hypothesis = final_state.get("hypothesis")
+
         metadata = {
             "source": "graph_rca_client",
             "provider": self.provider,
             "node_calls": len(call_log),
             "repairs_used": final_state.get("repairs_used", 0),
             "validation": final_state.get("validation_debug"),
+            # Phase 5 agentic fields
+            "investigation_rounds": final_state.get("investigation_rounds", 0),
+            "tool_results": tool_results,
+            "initial_hypothesis": hypothesis.hypothesis if hypothesis else None,
+            "initial_confidence": hypothesis.confidence_so_far if hypothesis else None,
         }
 
         return RCAGenerationResult(

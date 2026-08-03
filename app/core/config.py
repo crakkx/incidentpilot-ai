@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     # run. Nominal calls = 4 (one per node); worst case = 4 + this value.
     rca_graph_max_repairs: int = 3
 
+    # Max tool-call investigation rounds before the agent is forced to synthesise.
+    # Each round costs 0 extra LLM calls (tool selection is deterministic).
+    rca_agent_max_rounds: int = 3
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

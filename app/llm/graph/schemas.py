@@ -22,6 +22,61 @@ from app.schemas.analysis import (
 )
 
 
+class HypothesisResult(BaseModel):
+    """Output of the initial hypothesis node (Phase 5 agentic loop).
+
+    The model states its best initial guess about the root cause and lists
+    the specific information gaps it would need resolved to be more confident.
+    Each ``gap_queries`` entry becomes a tool call in the investigation loop.
+    """
+
+    hypothesis: str = Field(
+        min_length=1,
+        max_length=2000,
+        description=(
+            "Best initial hypothesis about the root cause, grounded only in "
+            "the evidence already extracted. Must be concrete, not generic."
+        ),
+    )
+
+    gap_queries: list[str] = Field(
+        default_factory=list,
+        max_length=5,
+        description=(
+            "Ordered list of specific information gaps that would strengthen "
+            "or refute the hypothesis. Each entry should describe one piece of "
+            "evidence to look up, e.g. 'Fetch CPU metric for payment-service "
+            "in the last 30 minutes' or 'Get recent logs for checkout-api "
+            "with ERROR level'. Leave empty if the existing evidence is already "
+            "sufficient."
+        ),
+    )
+
+    confidence_so_far: Literal["low", "medium", "high"] = Field(
+        default="low",
+        description=(
+            "How confident the model is in its hypothesis given the current "
+            "evidence, BEFORE any additional tool calls. 'low' means important "
+            "gaps exist; 'high' means the existing evidence is already clear."
+        ),
+    )
+
+    model_config = ConfigDict(
+        extra="forbid",
+        str_strip_whitespace=True,
+    )
+
+    @field_validator("gap_queries", mode="before")
+    @classmethod
+    def _normalize_gaps(cls, value: Any) -> Any:
+        return normalize_text_list(
+            value,
+            field_name="gap_queries",
+            accepted_keys=("query", "gap", "description", "text"),
+        )
+
+
+
 class ExtractionResult(BaseModel):
     """Output of the anomaly-extraction node.
 
