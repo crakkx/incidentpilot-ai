@@ -45,6 +45,7 @@ after every node. The Celery task passes ``analysis_run_id`` as the LangGraph
 import json
 import os
 from typing import Any
+from uuid import uuid4
 
 from langgraph.graph import END, StateGraph
 from pydantic import ValidationError
@@ -220,8 +221,9 @@ class GraphRCAClient(RCAClient):
 
         # LangGraph config — thread_id scopes the checkpoint to this analysis run
         invoke_config: dict[str, Any] = {}
-        if thread_id and self._graph.checkpointer is not None:
-            invoke_config = {"configurable": {"thread_id": thread_id}}
+        if self._graph.checkpointer is not None:
+            effective_thread_id = thread_id or uuid4().hex
+            invoke_config = {"configurable": {"thread_id": effective_thread_id}}
 
         import os as _os
         import mlflow as _mlflow
