@@ -58,6 +58,26 @@ class Settings(BaseSettings):
     # Each round costs 0 extra LLM calls (tool selection is deterministic).
     rca_agent_max_rounds: int = 3
 
+    # Auth
+    jwt_secret_key: SecretStr = SecretStr("dev-only-insecure-secret-change-me")
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60
+
+    # Security limits
+    max_request_body_bytes: int = 5 * 1024 * 1024  # 5 MB — covers small runbook uploads
+    analysis_rate_limit: str = "10/minute"
+
+    # CORS — comma-separated list of allowed frontend origins
+    cors_allow_origins: str = "http://localhost:3000"
+
+    # Demo/seed accounts (scripts/seed_users.py only) — not read by the app itself.
+    seed_admin_email: str | None = None
+    seed_admin_password: str | None = None
+    seed_operator_email: str | None = None
+    seed_operator_password: str | None = None
+    seed_viewer_email: str | None = None
+    seed_viewer_password: str | None = None
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

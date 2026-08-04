@@ -73,19 +73,6 @@ def build_analysis_run_metadata(
             llm_config["graph_max_repairs"] = (
                 settings.rca_graph_max_repairs
             )
-    else:
-        llm_config = {
-            "runtime": selected_provider,
-            "model": selected_model,
-            "temperature": (
-                settings.ollama_temperature
-            ),
-            "num_ctx": settings.ollama_num_ctx,
-            "num_predict": (
-                settings.ollama_num_predict
-            ),
-            "seed": settings.ollama_seed,
-        }
 
     active_pipeline_version = (
         RCA_GRAPH_PIPELINE_VERSION

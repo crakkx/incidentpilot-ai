@@ -51,6 +51,7 @@ from langgraph.graph import END, StateGraph
 from pydantic import ValidationError
 
 from app.core.config import settings
+from app.core.redaction import redact_value
 from app.llm.client import RCAClient, RCAGenerationResult
 from app.llm.errors import InvalidRCAOutputError
 from app.llm.graph.agent_nodes import run_gap_tool_node, run_hypothesis_node
@@ -336,6 +337,6 @@ class GraphRCAClient(RCAClient):
         return RCAGenerationResult(
             report=report,
             raw_output=raw_output,
-            metadata=metadata,
+            metadata=redact_value(metadata),
             attempts=attempts,
         )

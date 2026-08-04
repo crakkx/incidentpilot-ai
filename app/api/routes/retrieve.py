@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.api.deps import get_current_user
 from app.db.session import get_db
+from app.models import User
 from app.schemas.retrieve import RetrieveRequest, RetrieveResponse
 from app.services.retrieval_service import retrieve as service_retrieve
 
@@ -13,6 +15,7 @@ router = APIRouter(tags=["retrieve"])
 def retrieve(
     payload: RetrieveRequest,
     db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
 ):
     return service_retrieve(
         db=db,

@@ -13,3 +13,5 @@ def import_models() -> None:
     import app.models.document_chunk  # noqa: F401
     import app.models.analysis_run  # noqa: F401
     import app.models.metric  # noqa: F401
+    import app.models.user  # noqa: F401
+    import app.models.audit_log  # noqa: F401

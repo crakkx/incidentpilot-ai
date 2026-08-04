@@ -14,6 +14,7 @@ from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
+from app.core.redaction import redact_string, redact_value
 from app.llm.errors import InvalidRCAOutputError
 from app.llm.graph.prompts import (
     ACTION_SYSTEM_PROMPT,
@@ -47,9 +48,9 @@ def _record_call(
     state.setdefault("call_log", []).append(
         {
             "node": node_name,
-            "raw_output": raw_output,
-            "metadata": metadata,
-            "validation_errors": validation_errors or [],
+            "raw_output": redact_string(raw_output),
+            "metadata": redact_value(metadata),
+            "validation_errors": redact_value(validation_errors or []),
         }
     )
 
@@ -97,9 +98,9 @@ def _invoke_node(
                     f"after {repairs_used} repair attempt(s).",
                     debug={
                         "attempts": state.get("call_log", []),
-                        "final_raw_output": content,
-                        "final_metadata": metadata,
-                        "final_validation_errors": errors,
+                        "final_raw_output": redact_string(content),
+                        "final_metadata": redact_value(metadata),
+                        "final_validation_errors": redact_value(errors),
                     },
                 ) from exc
 

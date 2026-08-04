@@ -1,4 +1,13 @@
 services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      - api
+
   api:
     build: .
     ports:
@@ -9,20 +18,9 @@ services:
       TEST_DATABASE_URL: postgresql+psycopg://incidentpilot:incidentpilot@postgres:5432/incidentpilot_test
       REDIS_URL: redis://redis:6379/0
 
-      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
-
       HF_HOME: /cache/huggingface
       TORCH_HOME: /cache/torch
       SENTENCE_TRANSFORMERS_HOME: /cache/sentence-transformers
-
-      OLLAMA_BASE_URL: http://host.docker.internal:11434
-      OLLAMA_MODEL: qwen2.5:3b
-      OLLAMA_TIMEOUT_SECONDS: 240
-      OLLAMA_KEEP_ALIVE: 10m
-      OLLAMA_NUM_CTX: 8192
-      OLLAMA_TEMPERATURE: 0.0
-      OLLAMA_NUM_PREDICT: 1800
-      OLLAMA_SEED: 42
 
       MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
       MISTRAL_BASE_URL: ${MISTRAL_BASE_URL:-https://api.mistral.ai}
@@ -82,12 +80,9 @@ services:
       PYTHONPATH: /app
       DATABASE_URL: postgresql+psycopg://incidentpilot:incidentpilot@postgres:5432/incidentpilot
       REDIS_URL: redis://redis:6379/0
-      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
       HF_HOME: /cache/huggingface
       TORCH_HOME: /cache/torch
       SENTENCE_TRANSFORMERS_HOME: /cache/sentence-transformers
-      OLLAMA_BASE_URL: http://host.docker.internal:11434
-      OLLAMA_MODEL: qwen2.5:3b
       MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
       MISTRAL_BASE_URL: ${MISTRAL_BASE_URL:-https://api.mistral.ai}
       MISTRAL_MODEL: ${MISTRAL_MODEL:-mistral-small-latest}
@@ -130,7 +125,7 @@ services:
   grafana:
     image: grafana/grafana:latest
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:

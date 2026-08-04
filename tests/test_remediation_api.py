@@ -1,12 +1,9 @@
 from datetime import datetime
 from uuid import uuid4
-from fastapi.testclient import TestClient
-from app.main import app
 from app.models import AnalysisRun, Incident, Service
 
-client = TestClient(app)
 
-def test_remediation_approval_and_rejection_flow(db_session):
+def test_remediation_approval_and_rejection_flow(client, db_session):
     suffix = uuid4().hex[:8]
     service = Service(name=f"svc-{suffix}", description="test svc")
     db_session.add(service)
@@ -68,7 +65,7 @@ def test_remediation_approval_and_rejection_flow(db_session):
     assert run.status == "completed"
 
 
-def test_remediation_rejection_flow(db_session):
+def test_remediation_rejection_flow(client, db_session):
     suffix = uuid4().hex[:8]
     service = Service(name=f"svc-{suffix}", description="test svc")
     db_session.add(service)

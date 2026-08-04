@@ -29,6 +29,7 @@ def create_incident(
     description: str | None,
     service_id: str | None,
     service_name: str | None,
+    started_at=None,
 ) -> Incident:
     incident = Incident(
         title=title,
@@ -37,6 +38,7 @@ def create_incident(
         description=description,
         service_id=service_id,
         service_name=service_name,
+        **({"started_at": started_at} if started_at is not None else {}),
     )
 
     db.add(incident)
@@ -56,3 +58,14 @@ def list_incidents(db: Session, status: str | None = None) -> list[Incident]:
 
 def get_incident(db: Session, incident_id: str) -> Incident | None:
     return db.get(Incident, incident_id)
+
+
+def update_incident_status(db: Session, incident_id: str, status: str) -> Incident | None:
+    incident = db.get(Incident, incident_id)
+    if not incident:
+        return None
+    incident.status = status
+    db.commit()
+    db.refresh(incident)
+    return incident
+

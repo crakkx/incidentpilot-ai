@@ -66,6 +66,18 @@ _LOG_KEYWORDS = {"log", "error", "warn", "exception", "trace", "stderr", "stdout
 _METRIC_KEYWORDS = {"metric", "cpu", "mem", "memory", "latency", "request", "throughput", "rps", "p99", "p95"}
 _WEB_KEYWORDS = {"web", "search", "docs", "google", "internet", "public", "error_code", "cve", "github", "stack", "overflow", "external"}
 
+# Closed set of tools the agent may ever invoke. Selection below is pure
+# keyword matching over a fixed vocabulary — there is no code path, here or
+# anywhere in the pipeline, where the model's own output selects a tool name,
+# a function, or a query string that gets executed/evaluated. This constant
+# exists so that invariant is enforced at runtime, not just true by
+# construction: if a future change ever lets `_select_tool` return something
+# outside this set, `run_gap_tool_node` fails loudly instead of dispatching
+# to an unvetted tool.
+ALLOWED_TOOLS = frozenset(
+    {"fetch_logs", "fetch_metrics", "fetch_runbook_chunks", "fetch_web_search"}
+)
+
 
 def _select_tool(gap_query: str) -> str:
     """Deterministically pick a tool name from a gap query string.
@@ -195,6 +207,10 @@ def run_gap_tool_node(
     evidence_payload: dict[str, Any] = state["evidence_payload"]
 
     tool_name = _select_tool(gap)
+    assert tool_name in ALLOWED_TOOLS, (
+        f"_select_tool returned {tool_name!r}, outside ALLOWED_TOOLS — "
+        "refusing to dispatch to an unvetted tool."
+    )
     service_name = _extract_service_name(gap, evidence_payload)
 
     result: list[dict[str, Any]] = []

@@ -1,8 +1,15 @@
 
+.claude/
+.cursor/
+node_modules/
+.next/
+out/
+build/
 *.db
 *.py[cod]
 .DS_Store
 .env
+.env.local
 .idea/
 .pytest_cache/
 .venv/
@@ -10,3 +17,4 @@
 __pycache__/
 reports/demo_rca.json
 reports/*.json
+reports/load/
