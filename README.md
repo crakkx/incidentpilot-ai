@@ -38,6 +38,9 @@ Evaluated using `SentenceTransformers (all-MiniLM-L6-v2)` + `pgvector` Cosine Si
 | **MRR (Mean Reciprocal Rank)** | **0.908** | > 0.850 | Evaluates ranking position of relevant runbook chunks |
 | **Avg Retrieval Latency** | **14.2 ms** | < 50.0 ms | End-to-end vector embedding & Cosine similarity query time |
 
+
+> 📄 **Verifiable Benchmark Artifacts:** All evaluation run outputs, rule-based validator logs, and raw evaluation results are persisted in [`reports/rca_eval_latest.json`](reports/rca_eval_latest.json), [`reports/rca_eval_v0_baseline.json`](reports/rca_eval_v0_baseline.json), and [`reports/retrieval_eval_latest.json`](reports/retrieval_eval_latest.json).
+
 ---
 
 ## 🏗️ System Architecture
