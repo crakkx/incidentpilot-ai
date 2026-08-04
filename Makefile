@@ -1,9 +1,8 @@
 SHELL := /bin/sh
 
 TEST_DATABASE_URL := postgresql+psycopg://incidentpilot:incidentpilot@postgres:5432/incidentpilot_test
-OLLAMA_MODEL ?= qwen2.5:3b
 
-.PHONY: help setup up down logs migrate seed reindex test eval demo status
+.PHONY: help setup up down logs migrate seed reindex test eval demo status dashboard
 
 help:
 	@echo "IncidentPilot AI commands"
@@ -18,12 +17,9 @@ help:
 	@echo "  make eval     Run retrieval evaluation and update README"
 	@echo "  make demo     Run the end-to-end local RCA demo"
 	@echo "  make logs     Follow API logs"
-	@echo "  make status   Show container and Ollama status"
+	@echo "  make status   Show container status"
 
 setup:
-	@command -v ollama >/dev/null 2>&1 || \
-		(echo "Ollama is required. Install and start Ollama first."; exit 1)
-	@ollama list | grep -q "$(OLLAMA_MODEL)" || ollama pull "$(OLLAMA_MODEL)"
 	docker compose up -d --build
 	docker compose exec -T api alembic upgrade head
 	docker compose exec -T postgres sh -lc \
@@ -70,9 +66,12 @@ eval:
 		python scripts/run_retrieval_evals.py --update-readme
 
 demo:
-	sh scripts/demo_day10.sh
+	python3 scripts/demo.py
 
 status:
 	docker compose ps
-	@echo ""
-	@ollama ps || true
+
+dashboard:
+	docker compose up -d
+	@echo "Developer Console:"
+	@echo "http://localhost:8000/dev"

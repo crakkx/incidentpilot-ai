@@ -1,4 +1,13 @@
 services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      - api
+
   api:
     build: .
     ports:
@@ -13,23 +22,27 @@ services:
       TORCH_HOME: /cache/torch
       SENTENCE_TRANSFORMERS_HOME: /cache/sentence-transformers
 
-      OLLAMA_BASE_URL: http://host.docker.internal:11434
-      OLLAMA_MODEL: qwen2.5:3b
-      OLLAMA_TIMEOUT_SECONDS: 240
-      OLLAMA_KEEP_ALIVE: 10m
-      OLLAMA_NUM_CTX: 8192
-      OLLAMA_TEMPERATURE: 0.0
-      OLLAMA_NUM_PREDICT: 1800
-      OLLAMA_SEED: 42
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
+      MISTRAL_BASE_URL: ${MISTRAL_BASE_URL:-https://api.mistral.ai}
+      MISTRAL_MODEL: ${MISTRAL_MODEL:-mistral-small-latest}
+      MISTRAL_TIMEOUT_SECONDS: ${MISTRAL_TIMEOUT_SECONDS:-240}
+      MISTRAL_TEMPERATURE: ${MISTRAL_TEMPERATURE:-0.0}
+      MISTRAL_MAX_TOKENS: ${MISTRAL_MAX_TOKENS:-1800}
+      MISTRAL_RANDOM_SEED: ${MISTRAL_RANDOM_SEED:-42}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
 
       RCA_MAX_LOGS: 50
       RCA_MAX_METRICS: 50
       RCA_MAX_DEPLOYMENTS: 20
       RCA_RUNBOOK_TOP_K: 5
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      LANGGRAPH_CHECKPOINT_URL: postgresql+psycopg://incidentpilot:incidentpilot@postgres:5432/incidentpilot
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_started
+      mlflow:
         condition: service_started
     volumes:
       - .:/app
@@ -61,9 +74,69 @@ services:
     volumes:
       - redis_data:/data
 
+  worker:
+    build: .
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: postgresql+psycopg://incidentpilot:incidentpilot@postgres:5432/incidentpilot
+      REDIS_URL: redis://redis:6379/0
+      HF_HOME: /cache/huggingface
+      TORCH_HOME: /cache/torch
+      SENTENCE_TRANSFORMERS_HOME: /cache/sentence-transformers
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
+      MISTRAL_BASE_URL: ${MISTRAL_BASE_URL:-https://api.mistral.ai}
+      MISTRAL_MODEL: ${MISTRAL_MODEL:-mistral-small-latest}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      LANGGRAPH_CHECKPOINT_URL: postgresql+psycopg://incidentpilot:incidentpilot@postgres:5432/incidentpilot
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      mlflow:
+        condition: service_started
+    volumes:
+      - .:/app
+      - hf_cache:/cache/huggingface
+      - torch_cache:/cache/torch
+      - sentence_transformers_cache:/cache/sentence-transformers
+    command: celery -A app.worker.celery_app worker --loglevel=info
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.14.0
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_data:/mlflow
+    command: mlflow server --host 0.0.0.0 --backend-store-uri sqlite:////mlflow/mlflow.db --default-artifact-root /mlflow/artifacts
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+
 volumes:
   postgres_data:
   redis_data:
   hf_cache:
   torch_cache:
   sentence_transformers_cache:
+  mlflow_data:
+  prometheus_data:
+  grafana_data:

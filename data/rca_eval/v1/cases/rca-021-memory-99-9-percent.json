@@ -1,0 +1,133 @@
+{
+  "id": "rca-021",
+  "title": "Memory at 99.9% triggers OOM eviction at non-round threshold",
+  "scenario_type": "numeric_edge_case",
+  "difficulty": "medium",
+  "tags": ["numeric-edge-case", "memory", "99.9-percent", "eviction"],
+  "incident": {
+    "id": "incident-rca-021",
+    "title": "Worker pod evicted at 99.9% memory utilization",
+    "description": "A worker-service pod was evicted by Kubernetes after memory utilization reached 99.9% of the container limit. The non-round threshold value tests precise numeric reporting.",
+    "service_name": "worker-service",
+    "severity": "medium",
+    "started_at": "2026-07-26T10:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "metric-rca-021",
+      "source_type": "metric",
+      "timestamp": "2026-07-26T10:00:45Z",
+      "content": "memory_utilization_percent = 99.9",
+      "data": {
+        "metric_name": "memory_utilization_percent",
+        "value": 99.9,
+        "unit": "percent"
+      }
+    },
+    {
+      "id": "log-rca-021-a",
+      "source_type": "log",
+      "timestamp": "2026-07-26T10:01:00Z",
+      "content": "Pod evicted: worker-service-pod-5f7b9 evicted due to memory pressure at 99.9% utilization",
+      "data": {
+        "level": "WARNING",
+        "event": "pod_eviction",
+        "utilization_percent": 99.9,
+        "pod": "worker-service-pod-5f7b9"
+      }
+    },
+    {
+      "id": "log-rca-021-b",
+      "source_type": "log",
+      "timestamp": "2026-07-26T09:55:00Z",
+      "content": "Batch job processing 500000 records started on worker-service",
+      "data": {
+        "level": "INFO",
+        "job": "batch_record_processor",
+        "record_count": 500000
+      }
+    },
+    {
+      "id": "runbook-rca-021",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "Memory pressure eviction at near-100% utilization indicates the batch job memory footprint exceeds the container allocation. Implement batch size limits and memory-aware job scheduling.",
+      "data": {
+        "document_title": "Worker Memory Eviction Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-memory-99-9",
+        "concept": "Memory utilization reached 99.9%, triggering pod eviction.",
+        "acceptable_source_ids": ["metric-rca-021", "log-rca-021-a"],
+        "keywords_any": ["99.9", "memory pressure", "eviction"],
+        "required": true
+      },
+      {
+        "id": "observation-batch-job",
+        "concept": "A batch job processing 500000 records started shortly before the eviction.",
+        "acceptable_source_ids": ["log-rca-021-b"],
+        "keywords_any": ["batch job", "500000", "batch_record_processor"],
+        "required": false
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "memory pressure",
+        "memory eviction",
+        "99.9",
+        "near 100 percent memory"
+      ],
+      "suspected_trigger_keywords_any": ["batch job", "500000 records", "large batch"],
+      "causal_strength": "correlated",
+      "acceptable_confidence": ["medium"],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": ["investigate", "prevent"],
+      "required_keyword_groups": [
+        ["batch size", "chunk", "paginate"],
+        ["memory limit", "increase memory", "resource allocation"]
+      ],
+      "forbidden_keywords": ["disable eviction", "ignore memory pressure"]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-memory-utilization",
+        "source_id": "metric-rca-021",
+        "name": "memory_utilization_percent",
+        "value": 99.9,
+        "unit": "percent",
+        "tolerance": 0.0
+      }
+    ],
+    "temporal_facts": [
+      {
+        "id": "batch-job-before-eviction",
+        "left_source_id": "log-rca-021-b",
+        "right_source_id": "log-rca-021-a",
+        "relation": "before",
+        "max_gap_seconds": 360
+      }
+    ],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": [
+        "deployment caused memory pressure",
+        "network caused eviction"
+      ]
+    },
+    "required_missing_information": [
+      "memory usage per batch record",
+      "whether previous batch runs completed without eviction"
+    ],
+    "forbidden_claims": [
+      "disk full caused the eviction",
+      "external API caused memory usage"
+    ]
+  },
+  "notes": "Tests fractional numeric precision (99.9 vs 100). Tolerance is 0.0 so the model must cite the exact 99.9 value rather than rounding to 100."
+}

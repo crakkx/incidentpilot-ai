@@ -44,3 +44,31 @@ def list_metrics_in_window(
         .scalars()
         .all()
     )
+
+
+def create_metrics_bulk(
+    db: Session,
+    service_name: str,
+    metrics_data: list[dict],
+) -> list[Metric]:
+    created = []
+    for item in metrics_data:
+        ts = item.get("timestamp")
+        if isinstance(ts, str):
+            ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        elif ts is None:
+            ts = datetime.utcnow()
+
+        metric = Metric(
+            service_name=service_name,
+            timestamp=ts,
+            metric_name=item["metric_name"],
+            value=float(item["value"]),
+            unit=item.get("unit"),
+        )
+        db.add(metric)
+        created.append(metric)
+
+    db.commit()
+    return created
+

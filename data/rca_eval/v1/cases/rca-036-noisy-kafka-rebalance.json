@@ -1,0 +1,101 @@
+{
+  "id": "rca-036-noisy-kafka-rebalance",
+  "title": "Consumer crash hidden in rebalance logs",
+  "scenario_type": "noisy_evidence",
+  "difficulty": "medium",
+  "tags": [
+    "kafka",
+    "noise"
+  ],
+  "incident": {
+    "id": "inc-rca-036-noisy-kafka-rebalance",
+    "title": "Consumer crash hidden in rebalance logs",
+    "description": "Consumer lag is spiking.",
+    "service_name": "api-service",
+    "severity": "SEV-2",
+    "started_at": "2026-07-20T14:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-036-a",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "INFO: Kafka rebalance triggered, revoking partitions",
+      "data": {}
+    },
+    {
+      "id": "log-036-b",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "INFO: Kafka rebalance assigning partitions",
+      "data": {}
+    },
+    {
+      "id": "log-036-c",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "ERROR: DeserializationException: Invalid message format at offset 9942",
+      "data": {}
+    },
+    {
+      "id": "metric-036",
+      "source_type": "metric",
+      "timestamp": null,
+      "content": "kafka_consumer_lag: 50000",
+      "data": {}
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "obs-1",
+        "concept": "Deserialization exception occurred",
+        "acceptable_source_ids": [
+          "log-036-c"
+        ],
+        "keywords_any": [],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "deserialization exception",
+        "invalid message format",
+        "poison pill"
+      ],
+      "suspected_trigger_keywords_any": [
+        "bad message published",
+        "schema mismatch",
+        "kafka consumer",
+        "rebalance"
+      ],
+      "causal_strength": "confirmed",
+      "acceptable_confidence": [
+        "medium",
+        "high"
+      ],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": [],
+      "required_keyword_groups": [
+        [
+          "skip message",
+          "fix schema",
+          "handle deserialization error",
+          "dead letter queue"
+        ]
+      ],
+      "forbidden_keywords": []
+    },
+    "numeric_facts": [],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": []
+    },
+    "required_missing_information": [],
+    "forbidden_claims": []
+  },
+  "notes": null
+}

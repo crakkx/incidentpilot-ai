@@ -1,0 +1,166 @@
+{
+  "id": "rca-016",
+  "title": "Background job coincides with but does not cause DB deadlock",
+  "scenario_type": "false_correlation",
+  "difficulty": "hard",
+  "tags": [
+    "false-correlation",
+    "background-job",
+    "deadlock",
+    "database"
+  ],
+  "incident": {
+    "id": "incident-rca-016",
+    "title": "Transaction failures on billing-service",
+    "description": "The billing-service began reporting transaction failures. A nightly cleanup job ran at the same time, making it a suspect, but the actual error is a database deadlock on a different table.",
+    "service_name": "billing-service",
+    "severity": "high",
+    "started_at": "2026-07-25T03:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-rca-016-a",
+      "source_type": "log",
+      "timestamp": "2026-07-25T03:00:10Z",
+      "content": "nightly cleanup job started: deleting audit_archive records older than 90 days",
+      "data": {
+        "level": "INFO",
+        "job": "nightly_cleanup",
+        "target_table": "audit_archive"
+      }
+    },
+    {
+      "id": "log-rca-016-b",
+      "source_type": "log",
+      "timestamp": "2026-07-25T03:00:15Z",
+      "content": "Deadlock detected on invoices table: transaction T1 waiting for lock held by T2",
+      "data": {
+        "level": "ERROR",
+        "error": "deadlock",
+        "table": "invoices",
+        "transaction_1": "T1",
+        "transaction_2": "T2"
+      }
+    },
+    {
+      "id": "log-rca-016-c",
+      "source_type": "log",
+      "timestamp": "2026-07-25T03:01:00Z",
+      "content": "nightly cleanup job completed successfully on audit_archive",
+      "data": {
+        "level": "INFO",
+        "job": "nightly_cleanup",
+        "status": "completed"
+      }
+    },
+    {
+      "id": "runbook-rca-016",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "Deadlocks on the invoices table typically result from concurrent payment processing transactions acquiring locks in inconsistent order. Identify the two transactions involved and review their lock acquisition sequence. Nightly jobs targeting other tables are generally unrelated.",
+      "data": {
+        "document_title": "Database Deadlock Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-deadlock",
+        "concept": "A deadlock occurred on the invoices table between two concurrent transactions.",
+        "acceptable_source_ids": [
+          "log-rca-016-b"
+        ],
+        "keywords_any": [
+          "deadlock",
+          "invoices",
+          "transaction",
+          "lock"
+        ],
+        "required": true
+      },
+      {
+        "id": "observation-job-different-table",
+        "concept": "The nightly cleanup job operated on the audit_archive table, not the invoices table, and completed successfully.",
+        "acceptable_source_ids": [
+          "log-rca-016-a",
+          "log-rca-016-c"
+        ],
+        "keywords_any": [
+          "audit_archive",
+          "cleanup",
+          "completed successfully"
+        ],
+        "required": false
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "deadlock",
+        "database deadlock",
+        "lock contention",
+        "concurrent transactions"
+      ],
+      "suspected_trigger_keywords_any": [
+        "concurrent",
+        "lock order",
+        "payment processing"
+      ],
+      "causal_strength": "supported",
+      "acceptable_confidence": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": [
+        "investigate",
+        "mitigate"
+      ],
+      "required_keyword_groups": [
+        [
+          "lock order",
+          "lock acquisition",
+          "transaction sequence"
+        ],
+        [
+          "deadlock retry",
+          "retry logic",
+          "exponential backoff"
+        ]
+      ],
+      "forbidden_keywords": [
+        "suspend nightly job",
+        "the cleanup job caused"
+      ]
+    },
+    "numeric_facts": [],
+    "temporal_facts": [
+      {
+        "id": "job-before-deadlock",
+        "left_source_id": "log-rca-016-a",
+        "right_source_id": "log-rca-016-b",
+        "relation": "before",
+        "max_gap_seconds": 60
+      }
+    ],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": [
+        "cleanup job caused the deadlock",
+        "nightly job is responsible"
+      ]
+    },
+    "required_missing_information": [
+      "SQL query plans for T1 and T2 on the invoices table",
+      "whether the deadlock is a recurring pattern"
+    ],
+    "forbidden_claims": [
+      "nightly cleanup job caused the deadlock",
+      "disk full caused transaction failures"
+    ]
+  },
+  "notes": "The cleanup job is temporally close but operates on a completely different table. Model must use the runbook hint and table names to separate the correlation from the cause."
+}

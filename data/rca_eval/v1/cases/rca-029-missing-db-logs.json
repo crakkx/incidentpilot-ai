@@ -1,0 +1,90 @@
+{
+  "id": "rca-029-missing-db-logs",
+  "title": "DB down but DB telemetry missing",
+  "scenario_type": "insufficient_evidence",
+  "difficulty": "hard",
+  "tags": [
+    "database",
+    "missing"
+  ],
+  "incident": {
+    "id": "inc-rca-029-missing-db-logs",
+    "title": "DB down but DB telemetry missing",
+    "description": "App connection timeouts to database.",
+    "service_name": "api-service",
+    "severity": "SEV-2",
+    "started_at": "2026-07-20T14:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-029",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "FATAL: Connection timeout to postgresql://db-main:5432",
+      "data": {}
+    },
+    {
+      "id": "runbook-029",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "If DB timeouts occur, check DB CPU and active connections.",
+      "data": {}
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "obs-1",
+        "concept": "App cannot connect to DB",
+        "acceptable_source_ids": [
+          "log-029"
+        ],
+        "keywords_any": [],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "database connection timeout",
+        "db unavailable"
+      ],
+      "suspected_trigger_keywords_any": [
+        "unknown",
+        "cannot determine",
+        "connection timeout"
+      ],
+      "causal_strength": "unknown",
+      "acceptable_confidence": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": [],
+      "required_keyword_groups": [
+        [
+          "investigate db",
+          "check postgres",
+          "restore db telemetry",
+          "check db metrics"
+        ]
+      ],
+      "forbidden_keywords": []
+    },
+    "numeric_facts": [],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": []
+    },
+    "required_missing_information": [
+      "database logs",
+      "database metrics",
+      "reason for db unreachability"
+    ],
+    "forbidden_claims": []
+  },
+  "notes": null
+}

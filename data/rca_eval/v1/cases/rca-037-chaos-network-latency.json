@@ -1,0 +1,91 @@
+{
+  "id": "rca-037-chaos-network-latency",
+  "title": "API timeouts due to Chaos Mesh",
+  "scenario_type": "clear_cause",
+  "difficulty": "medium",
+  "tags": [
+    "chaos",
+    "network"
+  ],
+  "incident": {
+    "id": "inc-rca-037-chaos-network-latency",
+    "title": "API timeouts due to Chaos Mesh",
+    "description": "Sudden API timeouts.",
+    "service_name": "api-service",
+    "severity": "SEV-2",
+    "started_at": "2026-07-20T14:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-037",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "Context deadline exceeded calling downstream service",
+      "data": {}
+    },
+    {
+      "id": "dep-037",
+      "source_type": "deployment",
+      "timestamp": null,
+      "content": "Deployed Chaos Mesh experiment: network-delay-500ms to api-namespace",
+      "data": {}
+    },
+    {
+      "id": "runbook-037",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "If chaos experiments are running, they are the root cause.",
+      "data": {}
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "obs-1",
+        "concept": "Chaos mesh experiment deployed",
+        "acceptable_source_ids": [
+          "dep-037"
+        ],
+        "keywords_any": [],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "network delay",
+        "context deadline exceeded"
+      ],
+      "suspected_trigger_keywords_any": [
+        "chaos mesh experiment",
+        "chaos testing",
+        "failure injection"
+      ],
+      "causal_strength": "confirmed",
+      "acceptable_confidence": [
+        "medium",
+        "high"
+      ],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": [],
+      "required_keyword_groups": [
+        [
+          "stop chaos experiment",
+          "pause chaos",
+          "validate timeout resilience"
+        ]
+      ],
+      "forbidden_keywords": []
+    },
+    "numeric_facts": [],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "supported",
+      "forbidden_phrases": []
+    },
+    "required_missing_information": [],
+    "forbidden_claims": []
+  },
+  "notes": null
+}

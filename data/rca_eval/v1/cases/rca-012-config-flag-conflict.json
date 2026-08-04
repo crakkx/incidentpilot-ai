@@ -1,0 +1,123 @@
+{
+  "id": "rca-012",
+  "title": "Conflicting evidence: feature flag toggled but errors predate it",
+  "scenario_type": "conflicting_evidence",
+  "difficulty": "hard",
+  "tags": ["conflicting-evidence", "feature-flag", "temporal-conflict", "config"],
+  "incident": {
+    "id": "incident-rca-012",
+    "title": "Recommendation engine returning empty results",
+    "description": "The recommendation engine began returning empty results. A feature flag for the new ranking algorithm was toggled in the same time period, but error logs predate the toggle.",
+    "service_name": "recommendation-service",
+    "severity": "medium",
+    "started_at": "2026-07-23T20:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-rca-012-a",
+      "source_type": "log",
+      "timestamp": "2026-07-23T19:30:00Z",
+      "content": "recommendation engine returned empty result set for user request",
+      "data": {
+        "level": "WARNING",
+        "result_count": 0
+      }
+    },
+    {
+      "id": "deployment-rca-012",
+      "source_type": "deployment",
+      "timestamp": "2026-07-23T20:05:00Z",
+      "content": "Feature flag new_ranking_algorithm enabled via remote config push",
+      "data": {
+        "flag": "new_ranking_algorithm",
+        "value": true
+      }
+    },
+    {
+      "id": "log-rca-012-b",
+      "source_type": "log",
+      "timestamp": "2026-07-23T20:10:00Z",
+      "content": "Ranking algorithm returned null for candidate pool — NullReferenceException",
+      "data": {
+        "level": "ERROR",
+        "exception": "NullReferenceException",
+        "component": "ranking-algorithm"
+      }
+    },
+    {
+      "id": "runbook-rca-012",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "When recommendation results drop to zero, check whether a feature flag change preceded or followed the symptom onset. Conflicting timestamps may indicate a clock skew or that the issue has a separate upstream cause.",
+      "data": {
+        "document_title": "Recommendation Engine Zero-Results Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-empty-results",
+        "concept": "The recommendation engine returned empty result sets starting at 19:30, before the feature flag was toggled at 20:05.",
+        "acceptable_source_ids": ["log-rca-012-a", "deployment-rca-012"],
+        "keywords_any": ["empty result", "result_count", "0"],
+        "required": true
+      },
+      {
+        "id": "observation-nre-after-flag",
+        "concept": "A NullReferenceException appeared in the ranking algorithm after the flag was enabled.",
+        "acceptable_source_ids": ["log-rca-012-b"],
+        "keywords_any": ["nullreferenceexception", "null", "ranking algorithm"],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "conflicting",
+        "two separate issues",
+        "timestamp conflict",
+        "pre-existing issue",
+        "empty results"
+      ],
+      "suspected_trigger_keywords_any": ["feature flag", "ranking algorithm", "clock skew"],
+      "causal_strength": "unknown",
+      "acceptable_confidence": ["low", "medium"],
+      "must_distinguish_mechanism_and_trigger": false
+    },
+    "actions": {
+      "required_categories": ["investigate"],
+      "required_keyword_groups": [
+        ["disable feature flag", "roll back flag", "toggle off"],
+        ["clock skew", "timestamp", "pre-existing"]
+      ],
+      "forbidden_keywords": ["feature flag definitely caused"]
+    },
+    "numeric_facts": [],
+    "temporal_facts": [
+      {
+        "id": "empty-results-before-flag",
+        "left_source_id": "log-rca-012-a",
+        "right_source_id": "deployment-rca-012",
+        "relation": "before",
+        "max_gap_seconds": 2400
+      }
+    ],
+    "causal_language": {
+      "deployment_causality": "correlation_only",
+      "forbidden_phrases": [
+        "feature flag definitely caused the empty results",
+        "flag is confirmed the root cause"
+      ]
+    },
+    "required_missing_information": [
+      "whether empty results occurred before the flag was in use",
+      "clock synchronization status of the logging host",
+      "recommendation data store health at 19:30"
+    ],
+    "forbidden_claims": [
+      "database connection pool exhausted",
+      "disk full caused zero results"
+    ]
+  },
+  "notes": "The empty results predate the feature flag by 35 minutes, creating a temporal conflict. Model must acknowledge the contradiction rather than force one explanation."
+}

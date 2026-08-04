@@ -1,0 +1,107 @@
+{
+  "id": "rca-033-noisy-background-errors",
+  "title": "DB deadlock hidden in image processing noise",
+  "scenario_type": "noisy_evidence",
+  "difficulty": "hard",
+  "tags": [
+    "noise",
+    "database"
+  ],
+  "incident": {
+    "id": "inc-rca-033-noisy-background-errors",
+    "title": "DB deadlock hidden in image processing noise",
+    "description": "Checkout failures.",
+    "service_name": "api-service",
+    "severity": "SEV-2",
+    "started_at": "2026-07-20T14:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-033-a",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "WARN: Image processing failed for user 123 (expected noise)",
+      "data": {}
+    },
+    {
+      "id": "log-033-b",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "WARN: Image processing failed for user 124 (expected noise)",
+      "data": {}
+    },
+    {
+      "id": "log-033-c",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "WARN: Image processing failed for user 125 (expected noise)",
+      "data": {}
+    },
+    {
+      "id": "log-033-d",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "FATAL: Deadlock detected in checkout_transaction table",
+      "data": {}
+    },
+    {
+      "id": "runbook-033",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "Image processing errors are known and do not affect checkout. Deadlocks require query optimization.",
+      "data": {}
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "obs-1",
+        "concept": "Deadlock detected in checkout",
+        "acceptable_source_ids": [
+          "log-033-d"
+        ],
+        "keywords_any": [],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "deadlock",
+        "database deadlock"
+      ],
+      "suspected_trigger_keywords_any": [
+        "concurrent transactions",
+        "unknown"
+      ],
+      "causal_strength": "confirmed",
+      "acceptable_confidence": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": [],
+      "required_keyword_groups": [
+        [
+          "optimize queries",
+          "retry logic",
+          "investigate deadlock"
+        ]
+      ],
+      "forbidden_keywords": [
+        "image processing"
+      ]
+    },
+    "numeric_facts": [],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": []
+    },
+    "required_missing_information": [],
+    "forbidden_claims": []
+  },
+  "notes": null
+}

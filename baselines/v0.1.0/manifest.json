@@ -1,0 +1,34 @@
+{
+  "artifact_format_version": "baseline-artifacts/1.0.0",
+  "baseline_tag": "v0.1.0",
+  "captured_at": "2026-07-21T16:16:33.497811+00:00",
+  "description": "First working end-to-end local RCA baseline before claim-grounding and RCA evaluation changes.",
+  "files": {
+    "generation_config.json": {
+      "sha256": "2f87e58f24ffb04ec78832cab0b8c039d2320d76f8f2d82b94e9f1d744498d82",
+      "size_bytes": 329
+    },
+    "metadata.json": {
+      "sha256": "2959cd88ab1b8482d7c30d10b4b06381f8a418a8f4e711ec2e7a9371abc3b867",
+      "size_bytes": 138
+    },
+    "prompt.txt": {
+      "sha256": "6f70f61584206cc32e90792070a37e639e821a944cefb798b54698f1dad2ef33",
+      "size_bytes": 1430
+    },
+    "rca_output.json": {
+      "sha256": "9aad225f47a7cbff2cc41bece359ae59fe9128bfb6ead34571f7ae82fbe65d7d",
+      "size_bytes": 1942
+    },
+    "rca_schema.json": {
+      "sha256": "4c5abdce36c7b39ba80ed1f6398060bbb28772424276ffb599eed264d42640b1",
+      "size_bytes": 2435
+    },
+    "retrieval_eval.json": {
+      "sha256": "442a4683187ae057006c6514c1853f0425374f685d9e3aee5d645f32669f1097",
+      "size_bytes": 4800
+    }
+  },
+  "git_commit": "f41079bcd53e5725103f40094cc32eb972643740",
+  "source_directory": "reports/baselines/v0.1.0"
+}

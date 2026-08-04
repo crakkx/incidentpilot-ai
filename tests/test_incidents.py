@@ -64,6 +64,23 @@ def test_list_incidents(client):
     assert "Search API errors" in titles
 
 
+def test_create_incident_accepts_explicit_started_at(client, db_session):
+    response = client.post(
+        "/incidents",
+        json={
+            "title": "Custom start time incident",
+            "severity": "high",
+            "service_name": "checkout-api",
+            "started_at": "2026-01-01T12:00:00",
+        },
+    )
+
+    assert response.status_code == 201
+
+    incident = db_session.get(Incident, response.json()["id"])
+    assert incident.started_at.isoformat() == "2026-01-01T12:00:00"
+
+
 def test_create_incident_normalizes_service_name(client, db_session):
     response = client.post(
         "/incidents",

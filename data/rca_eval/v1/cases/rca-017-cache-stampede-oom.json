@@ -1,0 +1,151 @@
+{
+  "id": "rca-017",
+  "title": "Cache stampede combined with memory exhaustion multi-cause",
+  "scenario_type": "multi_cause",
+  "difficulty": "hard",
+  "tags": ["multi-cause", "cache-stampede", "memory", "redis"],
+  "incident": {
+    "id": "incident-rca-017",
+    "title": "Product catalog service OOM after Redis cold start",
+    "description": "The product-catalog service experienced an OOM kill shortly after a Redis restart caused a full cache miss storm. Both cache invalidation and a pre-existing memory leak contributed.",
+    "service_name": "product-catalog",
+    "severity": "high",
+    "started_at": "2026-07-25T08:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-rca-017-a",
+      "source_type": "log",
+      "timestamp": "2026-07-25T07:55:00Z",
+      "content": "Redis connection lost — cache cleared on restart",
+      "data": {
+        "level": "WARNING",
+        "event": "redis_restart",
+        "cache_cleared": true
+      }
+    },
+    {
+      "id": "metric-rca-017-a",
+      "source_type": "metric",
+      "timestamp": "2026-07-25T07:56:00Z",
+      "content": "cache_hit_rate = 0 percent",
+      "data": {
+        "metric_name": "cache_hit_rate",
+        "value": 0,
+        "unit": "percent"
+      }
+    },
+    {
+      "id": "metric-rca-017-b",
+      "source_type": "metric",
+      "timestamp": "2026-07-25T08:01:00Z",
+      "content": "memory_usage_bytes = 1073741824 bytes (1 GiB, limit 1 GiB)",
+      "data": {
+        "metric_name": "memory_usage_bytes",
+        "value": 1073741824,
+        "unit": "bytes"
+      }
+    },
+    {
+      "id": "log-rca-017-b",
+      "source_type": "log",
+      "timestamp": "2026-07-25T08:02:00Z",
+      "content": "OOMKilled: container product-catalog exceeded memory limit on cache miss flood",
+      "data": {
+        "level": "ERROR",
+        "reason": "OOMKilled",
+        "context": "cache_miss_flood"
+      }
+    },
+    {
+      "id": "runbook-rca-017",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "Cache stampede on Redis restart causes a thundering herd of DB queries. Combined with a memory leak, this can OOM the service. Implement cache warming on startup and identify unbounded object allocation in the cache miss code path.",
+      "data": {
+        "document_title": "Cache Stampede and OOM Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-cache-miss",
+        "concept": "Redis restart cleared the cache, causing cache hit rate to drop to 0%.",
+        "acceptable_source_ids": ["log-rca-017-a", "metric-rca-017-a"],
+        "keywords_any": ["cache hit rate", "0", "cache cleared", "redis restart"],
+        "required": true
+      },
+      {
+        "id": "observation-oom",
+        "concept": "The container was killed by OOM after memory reached the 1 GiB limit during the cache miss storm.",
+        "acceptable_source_ids": ["metric-rca-017-b", "log-rca-017-b"],
+        "keywords_any": ["oomkilled", "memory limit", "1073741824", "1 gib"],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "cache stampede",
+        "thundering herd",
+        "cache miss flood",
+        "memory exhaustion"
+      ],
+      "suspected_trigger_keywords_any": ["redis restart", "cache cleared", "memory leak"],
+      "causal_strength": "supported",
+      "acceptable_confidence": ["medium", "high"],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": ["mitigate", "prevent"],
+      "required_keyword_groups": [
+        ["cache warming", "warm cache", "pre-populate"],
+        ["memory leak", "profil", "heap dump"]
+      ],
+      "forbidden_keywords": ["disable redis", "ignore memory limit"]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-cache-hit-rate",
+        "source_id": "metric-rca-017-a",
+        "name": "cache_hit_rate",
+        "value": 0,
+        "unit": "percent",
+        "tolerance": 0
+      },
+      {
+        "id": "numeric-memory-bytes",
+        "source_id": "metric-rca-017-b",
+        "name": "memory_usage_bytes",
+        "value": 1073741824,
+        "unit": "bytes",
+        "tolerance": 0
+      }
+    ],
+    "temporal_facts": [
+      {
+        "id": "cache-miss-before-oom",
+        "left_source_id": "metric-rca-017-a",
+        "right_source_id": "log-rca-017-b",
+        "relation": "before",
+        "max_gap_seconds": 360
+      }
+    ],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": [
+        "deployment caused the oom",
+        "single cause"
+      ]
+    },
+    "required_missing_information": [
+      "memory usage trend before Redis restart",
+      "cache miss query volume during the stampede"
+    ],
+    "forbidden_claims": [
+      "disk full caused the OOM",
+      "external provider caused the cache failure"
+    ]
+  },
+  "notes": "Both the cache stampede and the memory leak are contributing causes. Model must identify both rather than anchoring on one."
+}

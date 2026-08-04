@@ -1,0 +1,127 @@
+{
+  "id": "rca-020",
+  "title": "Connection pool exactly at limit triggers rejection",
+  "scenario_type": "numeric_edge_case",
+  "difficulty": "medium",
+  "tags": ["numeric-edge-case", "connection-pool", "exact-limit", "database"],
+  "incident": {
+    "id": "incident-rca-020",
+    "title": "Database connection pool exactly at capacity",
+    "description": "The inventory-db connection pool reached exactly its configured limit of 100, causing new connection requests to be refused immediately rather than queued.",
+    "service_name": "inventory-service",
+    "severity": "high",
+    "started_at": "2026-07-26T07:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "metric-rca-020-a",
+      "source_type": "metric",
+      "timestamp": "2026-07-26T07:01:00Z",
+      "content": "db_active_connections = 100",
+      "data": {
+        "metric_name": "db_active_connections",
+        "value": 100,
+        "unit": "count"
+      }
+    },
+    {
+      "id": "metric-rca-020-b",
+      "source_type": "metric",
+      "timestamp": "2026-07-26T07:01:00Z",
+      "content": "db_pool_limit = 100",
+      "data": {
+        "metric_name": "db_pool_limit",
+        "value": 100,
+        "unit": "count"
+      }
+    },
+    {
+      "id": "log-rca-020",
+      "source_type": "log",
+      "timestamp": "2026-07-26T07:01:30Z",
+      "content": "Connection refused: pool at capacity (100/100); no queue slots available",
+      "data": {
+        "level": "ERROR",
+        "active": 100,
+        "limit": 100,
+        "queued": 0,
+        "queue_limit": 0
+      }
+    },
+    {
+      "id": "runbook-rca-020",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "When db_active_connections equals db_pool_limit with zero queue slots, requests are refused immediately. Identify long-running transactions holding connections. Increasing pool size is a temporary fix; identify connection leaks or slow queries.",
+      "data": {
+        "document_title": "Database Pool at Capacity Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-pool-at-limit",
+        "concept": "Active connections reached exactly 100, matching the configured pool limit with no queue available.",
+        "acceptable_source_ids": ["metric-rca-020-a", "metric-rca-020-b", "log-rca-020"],
+        "keywords_any": ["100", "pool at capacity", "connection refused"],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "connection pool at capacity",
+        "pool exhaustion",
+        "100/100",
+        "no queue"
+      ],
+      "suspected_trigger_keywords_any": ["long-running", "connection leak", "slow queries"],
+      "causal_strength": "confirmed",
+      "acceptable_confidence": ["medium", "high"],
+      "must_distinguish_mechanism_and_trigger": false
+    },
+    "actions": {
+      "required_categories": ["investigate", "mitigate"],
+      "required_keyword_groups": [
+        ["connection leak", "long-running transaction", "slow query"],
+        ["increase pool size", "temporary", "while investigating"]
+      ],
+      "forbidden_keywords": ["ignore the pool limit", "disable connection tracking"]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-active-connections",
+        "source_id": "metric-rca-020-a",
+        "name": "db_active_connections",
+        "value": 100,
+        "unit": "count",
+        "tolerance": 0
+      },
+      {
+        "id": "numeric-pool-limit",
+        "source_id": "metric-rca-020-b",
+        "name": "db_pool_limit",
+        "value": 100,
+        "unit": "count",
+        "tolerance": 0
+      }
+    ],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": [
+        "deployment caused pool exhaustion",
+        "network caused connection refusal"
+      ]
+    },
+    "required_missing_information": [
+      "which transactions are holding connections",
+      "connection hold duration distribution"
+    ],
+    "forbidden_claims": [
+      "disk full caused connection refusal",
+      "external provider caused the pool to fill"
+    ]
+  },
+  "notes": "Tests exact-limit numeric matching. The model must cite both the active connection count and the pool limit with value 100 each, tolerance 0."
+}

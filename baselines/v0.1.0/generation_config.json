@@ -1,0 +1,9 @@
+{
+  "model": "mistral-small-latest",
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "embedding_dimensions": 384,
+  "rca_max_logs": 50,
+  "rca_max_metrics": 50,
+  "rca_max_deployments": 20,
+  "rca_runbook_top_k": 5
+}

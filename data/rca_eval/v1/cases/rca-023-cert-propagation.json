@@ -1,0 +1,124 @@
+{
+  "id": "rca-023",
+  "title": "Certificate expiry with narrow 90-second window before errors",
+  "scenario_type": "temporal_edge_case",
+  "difficulty": "medium",
+  "tags": ["temporal-edge-case", "tls", "certificate", "narrow-window", "precision"],
+  "incident": {
+    "id": "incident-rca-023",
+    "title": "mTLS handshake failures 90 seconds after cert rotation",
+    "description": "Mutual TLS handshake failures began exactly 90 seconds after a certificate rotation was applied. The narrow time window tests precise temporal ordering.",
+    "service_name": "mesh-gateway",
+    "severity": "high",
+    "started_at": "2026-07-26T16:01:30Z"
+  },
+  "evidence": [
+    {
+      "id": "deployment-rca-023",
+      "source_type": "deployment",
+      "timestamp": "2026-07-26T16:00:00Z",
+      "content": "Certificate rotation applied: mesh-gateway rotated to new-cert-2026-07",
+      "data": {
+        "event": "cert_rotation",
+        "cert_name": "new-cert-2026-07"
+      }
+    },
+    {
+      "id": "log-rca-023-a",
+      "source_type": "log",
+      "timestamp": "2026-07-26T16:01:30Z",
+      "content": "mTLS handshake failed: peer certificate not yet propagated to sidecar proxies",
+      "data": {
+        "level": "ERROR",
+        "event": "mtls_handshake_failure",
+        "reason": "cert_not_propagated"
+      }
+    },
+    {
+      "id": "metric-rca-023",
+      "source_type": "metric",
+      "timestamp": "2026-07-26T16:01:45Z",
+      "content": "mtls_handshake_error_rate = 100 percent",
+      "data": {
+        "metric_name": "mtls_handshake_error_rate",
+        "value": 100,
+        "unit": "percent"
+      }
+    },
+    {
+      "id": "runbook-rca-023",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "mTLS failures immediately after certificate rotation indicate the new cert has not yet propagated to all sidecar proxies. Allow up to 120 seconds for full propagation before rollback. If failures persist beyond 120 seconds, roll back the certificate rotation.",
+      "data": {
+        "document_title": "mTLS Certificate Propagation Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-handshake-fail",
+        "concept": "mTLS handshake failures began 90 seconds after certificate rotation, suggesting propagation lag.",
+        "acceptable_source_ids": ["log-rca-023-a"],
+        "keywords_any": ["mtls handshake", "not propagated", "cert_not_propagated"],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "certificate propagation",
+        "cert not propagated",
+        "sidecar proxy",
+        "propagation lag"
+      ],
+      "suspected_trigger_keywords_any": ["cert rotation", "certificate rotation"],
+      "causal_strength": "supported",
+      "acceptable_confidence": ["medium", "high"],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": ["investigate", "mitigate"],
+      "required_keyword_groups": [
+        ["wait for propagation", "allow propagation", "120 seconds"],
+        ["rollback certificate", "roll back cert", "revert rotation"]
+      ],
+      "forbidden_keywords": ["disable mtls", "ignore handshake errors"]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-handshake-error-rate",
+        "source_id": "metric-rca-023",
+        "name": "mtls_handshake_error_rate",
+        "value": 100,
+        "unit": "percent",
+        "tolerance": 0
+      }
+    ],
+    "temporal_facts": [
+      {
+        "id": "rotation-before-handshake-fail",
+        "left_source_id": "deployment-rca-023",
+        "right_source_id": "log-rca-023-a",
+        "relation": "before",
+        "max_gap_seconds": 120
+      }
+    ],
+    "causal_language": {
+      "deployment_causality": "supported",
+      "forbidden_phrases": [
+        "deployment is not related to handshake failure",
+        "network partition caused the mtls failure"
+      ]
+    },
+    "required_missing_information": [
+      "sidecar proxy version and propagation configuration",
+      "whether errors resolve within 120 seconds of rotation"
+    ],
+    "forbidden_claims": [
+      "disk full caused mTLS failure",
+      "database caused handshake errors"
+    ]
+  },
+  "notes": "Tests a narrow 90-second window (max_gap_seconds=120). Model must correctly order the cert rotation before the handshake failures and reason about propagation delay."
+}

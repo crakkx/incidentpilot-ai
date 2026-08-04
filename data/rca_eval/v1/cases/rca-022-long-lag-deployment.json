@@ -1,0 +1,143 @@
+{
+  "id": "rca-022",
+  "title": "Deployment 6 hours before incident causes delayed memory growth",
+  "scenario_type": "temporal_edge_case",
+  "difficulty": "hard",
+  "tags": ["temporal-edge-case", "long-lag", "memory-leak", "deployment"],
+  "incident": {
+    "id": "incident-rca-022",
+    "title": "Session-service OOM from slow memory leak post-deployment",
+    "description": "The session-service OOM-killed 6 hours after a deployment. Memory usage grew gradually from the deployment time, suggesting the new code introduced a slow memory leak.",
+    "service_name": "session-service",
+    "severity": "high",
+    "started_at": "2026-07-26T12:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "deployment-rca-022",
+      "source_type": "deployment",
+      "timestamp": "2026-07-26T06:00:00Z",
+      "content": "session-service version 5.3.0 deployed — added session persistence layer",
+      "data": {
+        "version": "5.3.0",
+        "change": "session_persistence_layer"
+      }
+    },
+    {
+      "id": "metric-rca-022-a",
+      "source_type": "metric",
+      "timestamp": "2026-07-26T08:00:00Z",
+      "content": "memory_usage_percent = 45 at 08:00 (2 hours after deployment)",
+      "data": {
+        "metric_name": "memory_usage_percent",
+        "value": 45,
+        "unit": "percent"
+      }
+    },
+    {
+      "id": "metric-rca-022-b",
+      "source_type": "metric",
+      "timestamp": "2026-07-26T11:00:00Z",
+      "content": "memory_usage_percent = 88 at 11:00 (5 hours after deployment)",
+      "data": {
+        "metric_name": "memory_usage_percent",
+        "value": 88,
+        "unit": "percent"
+      }
+    },
+    {
+      "id": "log-rca-022",
+      "source_type": "log",
+      "timestamp": "2026-07-26T12:01:00Z",
+      "content": "OOMKilled: session-service exceeded memory limit after gradual growth since 06:00",
+      "data": {
+        "level": "ERROR",
+        "reason": "OOMKilled",
+        "growth_start": "2026-07-26T06:00:00Z"
+      }
+    },
+    {
+      "id": "runbook-rca-022",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "Gradual memory growth over hours following a deployment indicates a slow memory leak, typically in the new code path. Profile heap allocations in the session persistence layer. The time-to-OOM may vary with traffic volume.",
+      "data": {
+        "document_title": "Gradual Memory Leak Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-gradual-growth",
+        "concept": "Memory grew from 45% at 08:00 to 88% at 11:00 and ultimately OOM at 12:00, following the deployment at 06:00.",
+        "acceptable_source_ids": ["metric-rca-022-a", "metric-rca-022-b", "log-rca-022"],
+        "keywords_any": ["gradual", "memory growth", "45", "88", "oomkilled"],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "memory leak",
+        "gradual memory growth",
+        "slow leak",
+        "unbounded allocation"
+      ],
+      "suspected_trigger_keywords_any": ["deployment", "5.3.0", "session persistence"],
+      "causal_strength": "correlated",
+      "acceptable_confidence": ["medium"],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": ["investigate", "mitigate"],
+      "required_keyword_groups": [
+        ["heap profil", "memory profil", "heap dump"],
+        ["rollback", "roll back", "version 5.3.0"]
+      ],
+      "forbidden_keywords": ["deployment is not related", "ignore gradual growth"]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-memory-at-8",
+        "source_id": "metric-rca-022-a",
+        "name": "memory_usage_percent",
+        "value": 45,
+        "unit": "percent",
+        "tolerance": 0
+      },
+      {
+        "id": "numeric-memory-at-11",
+        "source_id": "metric-rca-022-b",
+        "name": "memory_usage_percent",
+        "value": 88,
+        "unit": "percent",
+        "tolerance": 0
+      }
+    ],
+    "temporal_facts": [
+      {
+        "id": "deployment-before-oom",
+        "left_source_id": "deployment-rca-022",
+        "right_source_id": "log-rca-022",
+        "relation": "before",
+        "max_gap_seconds": 25200
+      }
+    ],
+    "causal_language": {
+      "deployment_causality": "correlation_only",
+      "forbidden_phrases": [
+        "deployment definitely caused oom",
+        "deployment proved to cause memory leak"
+      ]
+    },
+    "required_missing_information": [
+      "heap profile of the session persistence layer",
+      "memory growth rate under different traffic levels"
+    ],
+    "forbidden_claims": [
+      "external provider caused memory growth",
+      "disk full caused the OOM"
+    ]
+  },
+  "notes": "Tests a long temporal gap (6 hours, max_gap_seconds=25200). The model must reason about the deployment despite the delay rather than dismissing it."
+}

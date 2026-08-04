@@ -6,7 +6,6 @@ PROJECT_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$PROJECT_ROOT"
 
 API_URL="${API_URL:-http://localhost:8000}"
-OLLAMA_URL="${OLLAMA_URL:-http://localhost:11434}"
 REPORT_PATH="reports/demo_rca.json"
 
 echo "============================================================"
@@ -14,15 +13,7 @@ echo "IncidentPilot AI — End-to-End RCA Demo"
 echo "============================================================"
 echo
 
-echo "1. Checking Ollama..."
-if ! curl -fsS "$OLLAMA_URL/api/tags" >/dev/null; then
-    echo "Ollama is not reachable at $OLLAMA_URL."
-    echo "Start the Ollama application and try again."
-    exit 1
-fi
 
-echo "   Ollama is reachable."
-echo
 
 echo "2. Starting Docker services..."
 docker compose up -d

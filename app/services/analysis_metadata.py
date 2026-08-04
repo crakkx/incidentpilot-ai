@@ -1,0 +1,126 @@
+import hashlib
+import json
+from typing import Any
+
+from app.core.config import settings
+from app.core.versions import (
+    PIPELINE_VERSION,
+    RCA_GRAPH_PIPELINE_VERSION,
+    RCA_PROMPT_VERSION,
+    RCA_SCHEMA_VERSION,
+)
+from app.llm.client import (
+    default_model_for_provider,
+    normalize_llm_provider,
+)
+from app.rag.chunking import (
+    DEFAULT_MAX_WORDS,
+    DEFAULT_OVERLAP_WORDS,
+)
+from app.schemas.analysis import RCAReport
+
+
+def _sha256_text(value: str) -> str:
+    return hashlib.sha256(
+        value.encode("utf-8")
+    ).hexdigest()
+
+
+def _stable_json(value: Any) -> str:
+    return json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    )
+
+
+def build_analysis_run_metadata(
+    *,
+    provider: str | None = None,
+    model_name: str | None = None,
+    pipeline: str | None = None,
+) -> dict[str, Any]:
+    schema = RCAReport.model_json_schema()
+    selected_provider = normalize_llm_provider(
+        provider
+    )
+    selected_pipeline = "graph"
+    selected_model = (
+        model_name
+        or default_model_for_provider(
+            selected_provider
+        )
+    )
+
+    if selected_provider == "mistral":
+        llm_config = {
+            "runtime": selected_provider,
+            "pipeline_mode": selected_pipeline,
+            "model": selected_model,
+            "temperature": (
+                settings.mistral_temperature
+            ),
+            "max_tokens": (
+                settings.mistral_max_tokens
+            ),
+            "random_seed": (
+                settings.mistral_random_seed
+            ),
+        }
+
+        if selected_pipeline == "graph":
+            llm_config["graph_max_repairs"] = (
+                settings.rca_graph_max_repairs
+            )
+
+    active_pipeline_version = (
+        RCA_GRAPH_PIPELINE_VERSION
+        if selected_pipeline == "graph"
+        else PIPELINE_VERSION
+    )
+
+    run_config = {
+        "pipeline_version": active_pipeline_version,
+        "schema_version": RCA_SCHEMA_VERSION,
+        "prompt_version": RCA_PROMPT_VERSION,
+        "llm": llm_config,
+        "retrieval": {
+            "embedding_model": (
+                settings.embedding_model_name
+            ),
+            "embedding_dimensions": (
+                settings.embedding_dimensions
+            ),
+            "runbook_top_k": (
+                settings.rca_runbook_top_k
+            ),
+            "chunk_max_words": DEFAULT_MAX_WORDS,
+            "chunk_overlap_words": (
+                DEFAULT_OVERLAP_WORDS
+            ),
+        },
+        "evidence_limits": {
+            "logs": settings.rca_max_logs,
+            "metrics": settings.rca_max_metrics,
+            "deployments": (
+                settings.rca_max_deployments
+            ),
+            "runbook_chunks": (
+                settings.rca_runbook_top_k
+            ),
+        },
+        "integrity": {
+            "prompt_sha256": "graph_nodes_managed",
+            "schema_sha256": _sha256_text(
+                _stable_json(schema)
+            ),
+        },
+    }
+
+    return {
+        "pipeline_version": active_pipeline_version,
+        "schema_version": RCA_SCHEMA_VERSION,
+        "prompt_version": RCA_PROMPT_VERSION,
+        "run_config": run_config,
+    }

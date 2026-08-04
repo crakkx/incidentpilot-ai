@@ -1,0 +1,150 @@
+{
+  "id": "rca-018",
+  "title": "Slow DB query causes connection pool exhaustion multi-cause",
+  "scenario_type": "multi_cause",
+  "difficulty": "medium",
+  "tags": ["multi-cause", "slow-query", "connection-pool", "database", "index"],
+  "incident": {
+    "id": "incident-rca-018",
+    "title": "Report-service timeouts due to slow query and connection pool",
+    "description": "The report-service began timing out. Investigation revealed both a slow database query (due to a missing index) and the resulting connection pool exhaustion as compounding factors.",
+    "service_name": "report-service",
+    "severity": "high",
+    "started_at": "2026-07-25T14:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-rca-018-a",
+      "source_type": "log",
+      "timestamp": "2026-07-25T14:01:00Z",
+      "content": "Slow query detected: SELECT * FROM reports WHERE created_at > ? executed in 9200ms",
+      "data": {
+        "level": "WARNING",
+        "query": "SELECT * FROM reports WHERE created_at > ?",
+        "duration_ms": 9200
+      }
+    },
+    {
+      "id": "metric-rca-018-a",
+      "source_type": "metric",
+      "timestamp": "2026-07-25T14:02:00Z",
+      "content": "db_active_connections = 98 (pool_limit = 100)",
+      "data": {
+        "metric_name": "db_active_connections",
+        "value": 98,
+        "unit": "count",
+        "pool_limit": 100
+      }
+    },
+    {
+      "id": "log-rca-018-b",
+      "source_type": "log",
+      "timestamp": "2026-07-25T14:03:00Z",
+      "content": "database connection pool exhausted; request rejected",
+      "data": {
+        "level": "ERROR",
+        "error": "pool_exhausted"
+      }
+    },
+    {
+      "id": "deployment-rca-018",
+      "source_type": "deployment",
+      "timestamp": "2026-07-25T13:00:00Z",
+      "content": "report-service version 1.8.0 deployed — added reports.created_at filter but no index migration",
+      "data": {
+        "version": "1.8.0",
+        "migration_included": false
+      }
+    },
+    {
+      "id": "runbook-rca-018",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "Slow queries that hold connections will exhaust the connection pool under load. Run EXPLAIN on the slow query and add indexes where full-table scans are detected. Connection pool exhaustion is a downstream symptom of the slow query, not an independent cause.",
+      "data": {
+        "document_title": "Slow Query and Connection Pool Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-slow-query",
+        "concept": "A query on reports.created_at took 9200ms, indicating a missing index.",
+        "acceptable_source_ids": ["log-rca-018-a"],
+        "keywords_any": ["slow query", "9200", "created_at", "missing index"],
+        "required": true
+      },
+      {
+        "id": "observation-pool-near-limit",
+        "concept": "Active DB connections reached 98 of 100, nearly exhausting the pool.",
+        "acceptable_source_ids": ["metric-rca-018-a"],
+        "keywords_any": ["98", "100", "connection pool", "pool_limit"],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "slow query",
+        "missing index",
+        "connection pool exhaustion",
+        "full table scan"
+      ],
+      "suspected_trigger_keywords_any": ["deployment", "1.8.0", "no index migration"],
+      "causal_strength": "supported",
+      "acceptable_confidence": ["medium", "high"],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": ["mitigate", "investigate"],
+      "required_keyword_groups": [
+        ["add index", "create index", "created_at index"],
+        ["explain", "query plan", "slow query log"]
+      ],
+      "forbidden_keywords": ["increase pool size as permanent fix", "disable slow query log"]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-query-duration",
+        "source_id": "log-rca-018-a",
+        "name": "duration_ms",
+        "value": 9200,
+        "unit": "ms",
+        "tolerance": 0
+      },
+      {
+        "id": "numeric-active-connections",
+        "source_id": "metric-rca-018-a",
+        "name": "db_active_connections",
+        "value": 98,
+        "unit": "count",
+        "tolerance": 0
+      }
+    ],
+    "temporal_facts": [
+      {
+        "id": "deployment-before-slow-query",
+        "left_source_id": "deployment-rca-018",
+        "right_source_id": "log-rca-018-a",
+        "relation": "before",
+        "max_gap_seconds": 7200
+      }
+    ],
+    "causal_language": {
+      "deployment_causality": "correlation_only",
+      "forbidden_phrases": [
+        "deployment definitely caused the exhaustion",
+        "deployment proved to cause connection pool"
+      ]
+    },
+    "required_missing_information": [
+      "EXPLAIN output for the slow query",
+      "whether an index on created_at exists"
+    ],
+    "forbidden_claims": [
+      "external provider caused the connection pool exhaustion",
+      "disk full caused slow queries"
+    ]
+  },
+  "notes": "The slow query is the primary cause; connection pool exhaustion is the downstream effect. The model must identify the causal chain, not treat them as independent causes."
+}

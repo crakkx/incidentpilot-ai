@@ -1,0 +1,90 @@
+{
+  "id": "rca-030-stealth-deployment",
+  "title": "App crashes with new error, missing deployment record",
+  "scenario_type": "insufficient_evidence",
+  "difficulty": "medium",
+  "tags": [
+    "deployment",
+    "missing"
+  ],
+  "incident": {
+    "id": "inc-rca-030-stealth-deployment",
+    "title": "App crashes with new error, missing deployment record",
+    "description": "App suddenly crashing on startup with 'InvalidConfigKey: features.new_billing'.",
+    "service_name": "api-service",
+    "severity": "SEV-2",
+    "started_at": "2026-07-20T14:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-030",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "Error: InvalidConfigKey: features.new_billing not found in schema",
+      "data": {}
+    },
+    {
+      "id": "runbook-030",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "Schema errors usually happen after bad deployments.",
+      "data": {}
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "obs-1",
+        "concept": "App crashes due to invalid config key",
+        "acceptable_source_ids": [
+          "log-030"
+        ],
+        "keywords_any": [],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "invalid config key",
+        "schema error"
+      ],
+      "suspected_trigger_keywords_any": [
+        "stealth deployment",
+        "untracked configuration change",
+        "unknown"
+      ],
+      "causal_strength": "supported",
+      "acceptable_confidence": [
+        "low",
+        "medium"
+      ],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": [],
+      "required_keyword_groups": [
+        [
+          "rollback",
+          "revert config",
+          "investigate recent changes",
+          "find untracked deployment",
+          "investigate",
+          "check"
+        ]
+      ],
+      "forbidden_keywords": []
+    },
+    "numeric_facts": [],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": []
+    },
+    "required_missing_information": [
+      "deployment record",
+      "who changed the config"
+    ],
+    "forbidden_claims": []
+  },
+  "notes": null
+}

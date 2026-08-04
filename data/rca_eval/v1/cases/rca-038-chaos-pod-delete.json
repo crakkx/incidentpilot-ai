@@ -1,0 +1,82 @@
+{
+  "id": "rca-038-chaos-pod-delete",
+  "title": "Services flapping due to chaos monkey",
+  "scenario_type": "clear_cause",
+  "difficulty": "easy",
+  "tags": [
+    "chaos",
+    "kubernetes"
+  ],
+  "incident": {
+    "id": "inc-rca-038-chaos-pod-delete",
+    "title": "Services flapping due to chaos monkey",
+    "description": "Pods are randomly dying and restarting.",
+    "service_name": "api-service",
+    "severity": "SEV-2",
+    "started_at": "2026-07-20T14:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-038",
+      "source_type": "log",
+      "timestamp": null,
+      "content": "Pod terminated by user system:serviceaccount:default:chaos-monkey",
+      "data": {}
+    },
+    {
+      "id": "metric-038",
+      "source_type": "metric",
+      "timestamp": null,
+      "content": "pod_restarts: 15",
+      "data": {}
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "obs-1",
+        "concept": "Pods terminated by chaos-monkey",
+        "acceptable_source_ids": [
+          "log-038"
+        ],
+        "keywords_any": [],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "pod termination",
+        "pods deleted"
+      ],
+      "suspected_trigger_keywords_any": [
+        "chaos monkey",
+        "automated failure injection"
+      ],
+      "causal_strength": "confirmed",
+      "acceptable_confidence": [
+        "high"
+      ],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": [],
+      "required_keyword_groups": [
+        [
+          "stop chaos monkey",
+          "disable cronjob",
+          "verify replica count"
+        ]
+      ],
+      "forbidden_keywords": []
+    },
+    "numeric_facts": [],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": []
+    },
+    "required_missing_information": [],
+    "forbidden_claims": []
+  },
+  "notes": null
+}

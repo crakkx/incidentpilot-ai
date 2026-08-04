@@ -2,10 +2,10 @@ from pydantic import BaseModel, Field
 
 
 class RetrieveRequest(BaseModel):
-    query: str = Field(..., min_length=2)
-    service_name: str | None = None
-    document_type: str | None = None
-    severity: str | None = None
+    query: str = Field(..., min_length=2, max_length=2_000)
+    service_name: str | None = Field(default=None, max_length=120)
+    document_type: str | None = Field(default=None, max_length=50)
+    severity: str | None = Field(default=None, max_length=50)
     top_k: int = Field(3, ge=1, le=10)
 
 

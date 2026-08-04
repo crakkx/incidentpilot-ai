@@ -1,0 +1,145 @@
+{
+  "id": "rca-019",
+  "title": "Expired auth token cascades to five downstream services",
+  "scenario_type": "multi_cause",
+  "difficulty": "hard",
+  "tags": ["multi-cause", "auth", "token-expiry", "cascade", "downstream"],
+  "incident": {
+    "id": "incident-rca-019",
+    "title": "Auth token expiry causes cascade across platform services",
+    "description": "A service-to-service auth token expired, causing authentication failures that cascaded to five dependent services, each reporting 401 errors.",
+    "service_name": "platform-api",
+    "severity": "critical",
+    "started_at": "2026-07-25T22:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-rca-019-a",
+      "source_type": "log",
+      "timestamp": "2026-07-25T22:00:05Z",
+      "content": "auth token expired for service-account platform-api-sa: token issued 90 days ago",
+      "data": {
+        "level": "ERROR",
+        "event": "token_expired",
+        "service_account": "platform-api-sa",
+        "token_age_days": 90
+      }
+    },
+    {
+      "id": "log-rca-019-b",
+      "source_type": "log",
+      "timestamp": "2026-07-25T22:00:10Z",
+      "content": "billing-service: 401 Unauthorized calling platform-api",
+      "data": {
+        "level": "ERROR",
+        "caller": "billing-service",
+        "dependency": "platform-api",
+        "status_code": 401
+      }
+    },
+    {
+      "id": "log-rca-019-c",
+      "source_type": "log",
+      "timestamp": "2026-07-25T22:00:12Z",
+      "content": "notification-service: 401 Unauthorized calling platform-api",
+      "data": {
+        "level": "ERROR",
+        "caller": "notification-service",
+        "status_code": 401
+      }
+    },
+    {
+      "id": "metric-rca-019",
+      "source_type": "metric",
+      "timestamp": "2026-07-25T22:01:00Z",
+      "content": "platform_api_error_rate = 100 percent",
+      "data": {
+        "metric_name": "platform_api_error_rate",
+        "value": 100,
+        "unit": "percent"
+      }
+    },
+    {
+      "id": "runbook-rca-019",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "Service-to-service token expiry causes a cascade of 401 errors to all callers. Renew the service account token immediately. After renewal, dependent services will recover on next retry. Implement token rotation alerts 7 days before expiry.",
+      "data": {
+        "document_title": "Auth Token Expiry and Cascade Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-token-expired",
+        "concept": "The platform-api-sa service account token expired after 90 days, causing auth failures.",
+        "acceptable_source_ids": ["log-rca-019-a"],
+        "keywords_any": ["token expired", "90 days", "platform-api-sa"],
+        "required": true
+      },
+      {
+        "id": "observation-cascade-401",
+        "concept": "Multiple downstream services (billing-service, notification-service) received 401 Unauthorized errors from platform-api.",
+        "acceptable_source_ids": ["log-rca-019-b", "log-rca-019-c"],
+        "keywords_any": ["401", "unauthorized", "cascade", "billing-service", "notification-service"],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "token expiry",
+        "auth token expired",
+        "service account token",
+        "authentication failure"
+      ],
+      "suspected_trigger_keywords_any": ["90 days", "token rotation", "no rotation alert"],
+      "causal_strength": "confirmed",
+      "acceptable_confidence": ["high"],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": ["mitigate", "prevent"],
+      "required_keyword_groups": [
+        ["renew token", "rotate token", "new service account token"],
+        ["rotation alert", "expiry alert", "7 days before"]
+      ],
+      "forbidden_keywords": ["rollback deployment", "restart database"]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-error-rate",
+        "source_id": "metric-rca-019",
+        "name": "platform_api_error_rate",
+        "value": 100,
+        "unit": "percent",
+        "tolerance": 0
+      }
+    ],
+    "temporal_facts": [
+      {
+        "id": "token-expiry-before-cascade",
+        "left_source_id": "log-rca-019-a",
+        "right_source_id": "log-rca-019-b",
+        "relation": "before",
+        "max_gap_seconds": 60
+      }
+    ],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": [
+        "deployment caused the token expiry",
+        "database caused the 401 errors"
+      ]
+    },
+    "required_missing_information": [
+      "full list of affected downstream services",
+      "why token rotation alerting was not configured"
+    ],
+    "forbidden_claims": [
+      "network partition caused the 401 errors",
+      "disk full caused auth failures"
+    ]
+  },
+  "notes": "Primary cause is auth token expiry; cascade to multiple downstream services is the multi-cause aspect. Model must identify both the root trigger and the blast radius."
+}

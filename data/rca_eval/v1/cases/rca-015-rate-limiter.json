@@ -1,0 +1,179 @@
+{
+  "id": "rca-015",
+  "title": "Rate limiter misconfiguration pre-existing before deployment",
+  "scenario_type": "false_correlation",
+  "difficulty": "hard",
+  "tags": [
+    "false-correlation",
+    "rate-limiter",
+    "deployment",
+    "misconfiguration"
+  ],
+  "incident": {
+    "id": "incident-rca-015",
+    "title": "API users receiving 429 Too Many Requests after deployment",
+    "description": "Users began receiving 429 responses from the gateway-api shortly after a deployment. Investigation shows the rate limiter config was not modified by the deployment.",
+    "service_name": "gateway-api",
+    "severity": "high",
+    "started_at": "2026-07-24T15:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "deployment-rca-015",
+      "source_type": "deployment",
+      "timestamp": "2026-07-24T14:30:00Z",
+      "content": "gateway-api version 2.1.0 deployed \u2014 no changes to rate_limiter.yaml",
+      "data": {
+        "version": "2.1.0",
+        "rate_limiter_changed": false
+      }
+    },
+    {
+      "id": "log-rca-015-a",
+      "source_type": "log",
+      "timestamp": "2026-07-24T15:01:00Z",
+      "content": "Rate limit exceeded for tenant_id=acme-corp: limit 100 req/min, current 450 req/min",
+      "data": {
+        "level": "WARNING",
+        "tenant_id": "acme-corp",
+        "limit_req_per_min": 100,
+        "observed_req_per_min": 450
+      }
+    },
+    {
+      "id": "log-rca-015-b",
+      "source_type": "log",
+      "timestamp": "2026-07-24T14:58:00Z",
+      "content": "acme-corp API traffic increased 4.5x following their marketing campaign launch",
+      "data": {
+        "level": "INFO",
+        "tenant_id": "acme-corp",
+        "traffic_multiplier": 4.5,
+        "cause": "marketing_campaign"
+      }
+    },
+    {
+      "id": "runbook-rca-015",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "HTTP 429 responses indicate a tenant is exceeding their configured rate limit. Verify whether the limit was recently changed or whether client traffic increased. Do not raise limits without confirming the deployment did not change rate limiter config.",
+      "data": {
+        "document_title": "Rate Limiter 429 Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-rate-exceeded",
+        "concept": "Tenant acme-corp was sending 450 req/min against a 100 req/min limit.",
+        "acceptable_source_ids": [
+          "log-rca-015-a"
+        ],
+        "keywords_any": [
+          "450",
+          "100",
+          "rate limit",
+          "req/min"
+        ],
+        "required": true
+      },
+      {
+        "id": "observation-traffic-spike",
+        "concept": "Traffic from acme-corp increased 4.5x due to a marketing campaign launch.",
+        "acceptable_source_ids": [
+          "log-rca-015-b"
+        ],
+        "keywords_any": [
+          "marketing campaign",
+          "4.5x",
+          "traffic increased"
+        ],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "rate limit exceeded",
+        "traffic spike",
+        "client traffic increase",
+        "marketing campaign"
+      ],
+      "suspected_trigger_keywords_any": [
+        "marketing campaign",
+        "client traffic"
+      ],
+      "causal_strength": "confirmed",
+      "acceptable_confidence": [
+        "medium",
+        "high"
+      ],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": [
+        "mitigate",
+        "investigate"
+      ],
+      "required_keyword_groups": [
+        [
+          "increase rate limit",
+          "temporary limit increase",
+          "quota increase"
+        ],
+        [
+          "notify tenant",
+          "acme-corp",
+          "capacity planning"
+        ]
+      ],
+      "forbidden_keywords": [
+        "rollback the deployment",
+        "the deployment caused"
+      ]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-rate-limit",
+        "source_id": "log-rca-015-a",
+        "name": "limit_req_per_min",
+        "value": 100,
+        "unit": "req/min",
+        "tolerance": 0
+      },
+      {
+        "id": "numeric-observed-rate",
+        "source_id": "log-rca-015-a",
+        "name": "observed_req_per_min",
+        "value": 450,
+        "unit": "req/min",
+        "tolerance": 0
+      }
+    ],
+    "temporal_facts": [
+      {
+        "id": "campaign-before-rate-exceeded",
+        "left_source_id": "log-rca-015-b",
+        "right_source_id": "log-rca-015-a",
+        "relation": "before",
+        "max_gap_seconds": 300
+      }
+    ],
+    "causal_language": {
+      "deployment_causality": "forbidden",
+      "forbidden_phrases": [
+        "deployment caused the rate limit issue",
+        "new release changed the rate limiter"
+      ]
+    },
+    "required_missing_information": [
+      "current rate limiter config to confirm no change",
+      "whether the tenant was warned about the campaign traffic"
+    ],
+    "forbidden_claims": [
+      "deployment changed the rate limit",
+      "database failure caused the 429 errors"
+    ]
+  },
+  "notes": "The deployment is a false correlation. The actual cause is a tenant traffic spike from a marketing campaign. Model must resist attributing 429s to the nearby deployment."
+}

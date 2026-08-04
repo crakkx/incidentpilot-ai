@@ -1,0 +1,107 @@
+{
+  "id": "rca-011",
+  "title": "External API degradation with limited internal observability",
+  "scenario_type": "insufficient_evidence",
+  "difficulty": "medium",
+  "tags": ["insufficient-evidence", "external-api", "third-party", "observability"],
+  "incident": {
+    "id": "incident-rca-011",
+    "title": "Shipping-service failures on label generation API calls",
+    "description": "The shipping-service began failing on calls to an external label generation API. Internal errors are reported but no status information from the external provider is available.",
+    "service_name": "shipping-service",
+    "severity": "medium",
+    "started_at": "2026-07-23T13:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-rca-011-a",
+      "source_type": "log",
+      "timestamp": "2026-07-23T13:01:00Z",
+      "content": "label-api returned HTTP 503: service unavailable",
+      "data": {
+        "level": "ERROR",
+        "dependency": "label-api",
+        "status_code": 503
+      }
+    },
+    {
+      "id": "metric-rca-011",
+      "source_type": "metric",
+      "timestamp": "2026-07-23T13:02:00Z",
+      "content": "external_api_error_rate = 100 percent",
+      "data": {
+        "metric_name": "external_api_error_rate",
+        "value": 100,
+        "unit": "percent"
+      }
+    },
+    {
+      "id": "runbook-rca-011",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "When the label API returns HTTP 503, check the provider status page and their SLA reporting portal. If no public status is available, activate the manual label generation fallback and open a P1 ticket with the provider.",
+      "data": {
+        "document_title": "Label API Degradation Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-503-label-api",
+        "concept": "The external label API returned HTTP 503 errors with a 100% error rate.",
+        "acceptable_source_ids": ["log-rca-011-a", "metric-rca-011"],
+        "keywords_any": ["503", "service unavailable", "label-api", "100"],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "external api degradation",
+        "label api unavailable",
+        "third-party service unavailable",
+        "external provider failure"
+      ],
+      "suspected_trigger_keywords_any": [],
+      "causal_strength": "unknown",
+      "acceptable_confidence": ["low", "medium"],
+      "must_distinguish_mechanism_and_trigger": false
+    },
+    "actions": {
+      "required_categories": ["mitigate", "escalate"],
+      "required_keyword_groups": [
+        ["status page", "provider status", "p1 ticket"],
+        ["fallback", "manual label", "alternative"]
+      ],
+      "forbidden_keywords": ["restart the database", "roll back deployment"]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-error-rate",
+        "source_id": "metric-rca-011",
+        "name": "external_api_error_rate",
+        "value": 100,
+        "unit": "percent",
+        "tolerance": 0
+      }
+    ],
+    "temporal_facts": [],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": [
+        "internal deployment caused the api failure",
+        "database caused the 503"
+      ]
+    },
+    "required_missing_information": [
+      "external label API provider status page",
+      "whether the issue affects other customers of the provider",
+      "internal API key or credential validity"
+    ],
+    "forbidden_claims": [
+      "network partition caused the error",
+      "disk full caused the label api failure"
+    ]
+  },
+  "notes": "Model only has evidence of the symptom (503). The cause is outside the observable boundary; it must request external status data."
+}

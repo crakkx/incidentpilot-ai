@@ -1,0 +1,115 @@
+{
+  "id": "rca-014",
+  "title": "Deployment split-brain with conflicting version logs across regions",
+  "scenario_type": "conflicting_evidence",
+  "difficulty": "hard",
+  "tags": ["conflicting-evidence", "deployment", "multi-region", "split-brain"],
+  "incident": {
+    "id": "incident-rca-014",
+    "title": "Inconsistent API responses across regions after deployment",
+    "description": "Clients in different regions receive inconsistent responses from the catalog-service after a recent deployment. Logs from two regions show different software versions handling requests.",
+    "service_name": "catalog-service",
+    "severity": "high",
+    "started_at": "2026-07-24T10:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "deployment-rca-014",
+      "source_type": "deployment",
+      "timestamp": "2026-07-24T09:30:00Z",
+      "content": "catalog-service version 4.2.0 deployed via rolling update",
+      "data": {
+        "version": "4.2.0",
+        "strategy": "rolling"
+      }
+    },
+    {
+      "id": "log-rca-014-a",
+      "source_type": "log",
+      "timestamp": "2026-07-24T10:02:00Z",
+      "content": "catalog-service/4.2.0 handling request in us-east-1",
+      "data": {
+        "level": "INFO",
+        "version": "4.2.0",
+        "region": "us-east-1"
+      }
+    },
+    {
+      "id": "log-rca-014-b",
+      "source_type": "log",
+      "timestamp": "2026-07-24T10:02:30Z",
+      "content": "catalog-service/4.1.3 handling request in eu-west-1",
+      "data": {
+        "level": "INFO",
+        "version": "4.1.3",
+        "region": "eu-west-1"
+      }
+    },
+    {
+      "id": "runbook-rca-014",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "Version conflicts across regions during rolling deployments indicate the rollout did not complete. Verify deployment status in all regions and either complete the rollout or roll back globally before investigating response inconsistencies.",
+      "data": {
+        "document_title": "Multi-Region Rolling Deployment Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-version-conflict",
+        "concept": "Two different versions (4.2.0 and 4.1.3) are serving requests simultaneously in different regions.",
+        "acceptable_source_ids": ["log-rca-014-a", "log-rca-014-b"],
+        "keywords_any": ["4.2.0", "4.1.3", "version conflict", "two regions"],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "incomplete rollout",
+        "partial deployment",
+        "version mismatch",
+        "rolling update stalled"
+      ],
+      "suspected_trigger_keywords_any": ["rolling update", "deployment", "rollout"],
+      "causal_strength": "supported",
+      "acceptable_confidence": ["medium", "high"],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": ["mitigate"],
+      "required_keyword_groups": [
+        ["complete the rollout", "finish deployment", "rollback globally", "roll back"],
+        ["verify all regions", "region status", "check deployment"]
+      ],
+      "forbidden_keywords": ["disable multi-region", "delete old version manually"]
+    },
+    "numeric_facts": [],
+    "temporal_facts": [
+      {
+        "id": "deployment-before-version-conflict",
+        "left_source_id": "deployment-rca-014",
+        "right_source_id": "log-rca-014-a",
+        "relation": "before",
+        "max_gap_seconds": 3600
+      }
+    ],
+    "causal_language": {
+      "deployment_causality": "supported",
+      "forbidden_phrases": [
+        "external provider caused the version conflict",
+        "database caused split-brain"
+      ]
+    },
+    "required_missing_information": [
+      "deployment status in all regions",
+      "whether the rollout was manually paused or failed automatically"
+    ],
+    "forbidden_claims": [
+      "disk full caused inconsistent responses",
+      "network partition caused the version mismatch"
+    ]
+  },
+  "notes": "The conflict is between two simultaneously active versions. The deployment evidence is the trigger; the mechanism is an incomplete rolling update."
+}

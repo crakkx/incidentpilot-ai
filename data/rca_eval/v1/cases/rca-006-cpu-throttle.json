@@ -1,0 +1,182 @@
+{
+  "id": "rca-006",
+  "title": "CPU throttling from cgroup limits causes p99 SLO breach",
+  "scenario_type": "clear_cause",
+  "difficulty": "medium",
+  "tags": [
+    "cpu",
+    "throttle",
+    "cgroup",
+    "latency",
+    "kubernetes"
+  ],
+  "incident": {
+    "id": "incident-rca-006",
+    "title": "Inventory API request latency breach",
+    "description": "The inventory-api began breaching its p99 latency SLO of 500ms. No errors were logged but response times spiked significantly.",
+    "service_name": "inventory-api",
+    "severity": "medium",
+    "started_at": "2026-07-21T10:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "metric-rca-006-a",
+      "source_type": "metric",
+      "timestamp": "2026-07-21T10:02:00Z",
+      "content": "cpu_throttle_percent = 89 on inventory-api",
+      "data": {
+        "metric_name": "cpu_throttle_percent",
+        "value": 89,
+        "unit": "percent"
+      }
+    },
+    {
+      "id": "metric-rca-006-b",
+      "source_type": "metric",
+      "timestamp": "2026-07-21T10:03:00Z",
+      "content": "request_latency_p99 = 3800 ms",
+      "data": {
+        "metric_name": "request_latency_p99",
+        "value": 3800,
+        "unit": "ms"
+      }
+    },
+    {
+      "id": "log-rca-006",
+      "source_type": "log",
+      "timestamp": "2026-07-21T10:05:00Z",
+      "content": "SLO breach detected: p99 latency 3800ms exceeds threshold 500ms",
+      "data": {
+        "level": "WARNING",
+        "slo_threshold_ms": 500,
+        "observed_ms": 3800
+      }
+    },
+    {
+      "id": "runbook-rca-006",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "High CPU throttle percentages indicate the container CPU limit is too low relative to actual consumption. Increase cpu_limit or reduce the request rate temporarily. Do not simply remove limits without setting new ones.",
+      "data": {
+        "document_title": "CPU Throttle and Latency SLO Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-cpu-throttle",
+        "concept": "CPU throttling reached 89%, restricting processing capacity.",
+        "acceptable_source_ids": [
+          "metric-rca-006-a"
+        ],
+        "keywords_any": [
+          "cpu throttle",
+          "throttle",
+          "89"
+        ],
+        "required": true
+      },
+      {
+        "id": "observation-latency-breach",
+        "concept": "Request p99 latency rose to 3800ms, breaching the 500ms SLO.",
+        "acceptable_source_ids": [
+          "metric-rca-006-b",
+          "log-rca-006"
+        ],
+        "keywords_any": [
+          "3800",
+          "slo breach",
+          "latency"
+        ],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "cpu throttling",
+        "cpu limit",
+        "cgroup throttle"
+      ],
+      "suspected_trigger_keywords_any": [
+        "cpu limit",
+        "cpu request",
+        "resource limit"
+      ],
+      "causal_strength": "supported",
+      "acceptable_confidence": [
+        "medium",
+        "high"
+      ],
+      "must_distinguish_mechanism_and_trigger": false
+    },
+    "actions": {
+      "required_categories": [
+        "mitigate",
+        "investigate"
+      ],
+      "required_keyword_groups": [
+        [
+          "increase cpu limit",
+          "cpu_limit",
+          "raise the limit"
+        ],
+        [
+          "load test",
+          "usage trend",
+          "profile",
+          "investigate",
+          "check",
+          "monitor"
+        ]
+      ],
+      "forbidden_keywords": [
+        "remove all cpu limits",
+        "disable throttling permanently"
+      ]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-throttle",
+        "source_id": "metric-rca-006-a",
+        "name": "cpu_throttle_percent",
+        "value": 89,
+        "unit": "percent",
+        "tolerance": 0
+      },
+      {
+        "id": "numeric-latency",
+        "source_id": "metric-rca-006-b",
+        "name": "request_latency_p99",
+        "value": 3800,
+        "unit": "ms",
+        "tolerance": 0
+      }
+    ],
+    "temporal_facts": [
+      {
+        "id": "throttle-before-slo-breach",
+        "left_source_id": "metric-rca-006-a",
+        "right_source_id": "log-rca-006",
+        "relation": "before",
+        "max_gap_seconds": 300
+      }
+    ],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": [
+        "deployment caused the latency",
+        "database caused the throttle"
+      ]
+    },
+    "required_missing_information": [
+      "cpu usage trend over the preceding hour",
+      "whether cpu_limit was recently changed"
+    ],
+    "forbidden_claims": [
+      "memory exhaustion caused the latency",
+      "external provider caused the throttle"
+    ]
+  },
+  "notes": "Both mechanism (throttle) and effect (latency) are directly observable. Tests multi-metric numeric validation."
+}

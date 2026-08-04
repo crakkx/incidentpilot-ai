@@ -1,0 +1,132 @@
+{
+  "id": "rca-005",
+  "title": "Disk full on logging volume causes write failures",
+  "scenario_type": "clear_cause",
+  "difficulty": "easy",
+  "tags": ["disk", "storage", "logging", "write-failure"],
+  "incident": {
+    "id": "incident-rca-005",
+    "title": "Log writes failing across analytics service",
+    "description": "The analytics service began reporting write errors. Application logs and audit trails stopped being persisted.",
+    "service_name": "analytics-service",
+    "severity": "medium",
+    "started_at": "2026-07-20T14:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-rca-005-a",
+      "source_type": "log",
+      "timestamp": "2026-07-20T14:01:00Z",
+      "content": "write failed: no space left on device /var/log",
+      "data": {
+        "level": "ERROR",
+        "errno": "ENOSPC",
+        "path": "/var/log"
+      }
+    },
+    {
+      "id": "metric-rca-005",
+      "source_type": "metric",
+      "timestamp": "2026-07-20T14:00:30Z",
+      "content": "disk_usage_percent = 100 on /var/log",
+      "data": {
+        "metric_name": "disk_usage_percent",
+        "value": 100,
+        "unit": "percent",
+        "mount": "/var/log"
+      }
+    },
+    {
+      "id": "log-rca-005-b",
+      "source_type": "log",
+      "timestamp": "2026-07-20T14:02:00Z",
+      "content": "audit trail persistence error: disk quota exceeded",
+      "data": {
+        "level": "ERROR",
+        "component": "audit-trail"
+      }
+    },
+    {
+      "id": "runbook-rca-005",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "When disk usage reaches 100%, rotate or archive logs immediately. Identify the largest files using 'du -sh /var/log/*'. Implement log rotation and alerting at 85% usage to prevent recurrence.",
+      "data": {
+        "document_title": "Disk Full Recovery Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-no-space",
+        "concept": "The logging volume /var/log reached 100% utilization causing ENOSPC errors.",
+        "acceptable_source_ids": ["log-rca-005-a", "metric-rca-005"],
+        "keywords_any": ["no space left", "enospc", "disk", "100"],
+        "required": true
+      },
+      {
+        "id": "observation-write-failure",
+        "concept": "Log writes and audit trail persistence failed due to the full disk.",
+        "acceptable_source_ids": ["log-rca-005-a", "log-rca-005-b"],
+        "keywords_any": ["write failed", "audit trail", "persistence error"],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "disk full",
+        "disk usage 100",
+        "no space left",
+        "storage exhaustion"
+      ],
+      "suspected_trigger_keywords_any": ["log rotation", "log volume", "logging"],
+      "causal_strength": "confirmed",
+      "acceptable_confidence": ["high"],
+      "must_distinguish_mechanism_and_trigger": false
+    },
+    "actions": {
+      "required_categories": ["mitigate", "prevent"],
+      "required_keyword_groups": [
+        ["rotate", "archive", "delete", "remove old logs"],
+        ["log rotation", "alert", "threshold", "85%"]
+      ],
+      "forbidden_keywords": ["ignore the disk alert", "disable logging"]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-disk-full",
+        "source_id": "metric-rca-005",
+        "name": "disk_usage_percent",
+        "value": 100,
+        "unit": "percent",
+        "tolerance": 0
+      }
+    ],
+    "temporal_facts": [
+      {
+        "id": "disk-full-before-write-failure",
+        "left_source_id": "metric-rca-005",
+        "right_source_id": "log-rca-005-a",
+        "relation": "before",
+        "max_gap_seconds": 120
+      }
+    ],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": [
+        "deployment caused the disk to fill",
+        "network issue caused write failures"
+      ]
+    },
+    "required_missing_information": [
+      "which process or log file consumed the disk",
+      "last log rotation timestamp"
+    ],
+    "forbidden_claims": [
+      "database corruption",
+      "external provider outage"
+    ]
+  },
+  "notes": "Root cause is unambiguous; the value of this case is testing correct numeric reporting and high confidence."
+}

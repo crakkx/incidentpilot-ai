@@ -1,0 +1,147 @@
+{
+  "id": "rca-003",
+  "title": "Deployment exists but external provider is failing",
+  "scenario_type": "false_correlation",
+  "difficulty": "hard",
+  "tags": [
+    "false-correlation",
+    "external-provider",
+    "causal-language"
+  ],
+  "incident": {
+    "id": "incident-rca-003",
+    "title": "Payment authorization failures",
+    "description": "Payment authorization failures began after a deployment, but provider responses show upstream service errors.",
+    "service_name": "payments-api",
+    "severity": "high",
+    "started_at": "2026-07-19T15:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "deployment-rca-003",
+      "source_type": "deployment",
+      "timestamp": "2026-07-19T14:10:00Z",
+      "content": "payments-api version 2.4.1 deployed",
+      "data": {
+        "version": "2.4.1",
+        "commit_sha": "def456"
+      }
+    },
+    {
+      "id": "log-rca-003",
+      "source_type": "log",
+      "timestamp": "2026-07-19T15:01:00Z",
+      "content": "payment provider returned HTTP 503 service unavailable",
+      "data": {
+        "level": "ERROR",
+        "status_code": 503,
+        "dependency": "external-payment-provider"
+      }
+    },
+    {
+      "id": "metric-rca-003",
+      "source_type": "metric",
+      "timestamp": "2026-07-19T15:02:00Z",
+      "content": "provider_latency_p95 = 8200 ms",
+      "data": {
+        "metric_name": "provider_latency_p95",
+        "value": 8200,
+        "unit": "ms"
+      }
+    },
+    {
+      "id": "runbook-rca-003",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "HTTP 503 errors from the payment provider indicate upstream degradation. Check provider status and use a fallback provider where available.",
+      "data": {
+        "document_title": "Payment Provider Degradation Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-provider-503",
+        "concept": "The external provider returned HTTP 503.",
+        "acceptable_source_ids": [
+          "log-rca-003"
+        ],
+        "keywords_any": [
+          "503",
+          "service unavailable"
+        ],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "external provider degradation",
+        "payment provider unavailable",
+        "upstream provider failure"
+      ],
+      "suspected_trigger_keywords_any": [],
+      "causal_strength": "supported",
+      "acceptable_confidence": [
+        "medium",
+        "high"
+      ],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": [
+        "mitigate",
+        "monitor",
+        "escalate"
+      ],
+      "required_keyword_groups": [
+        [
+          "provider status",
+          "contact provider"
+        ],
+        [
+          "fallback provider",
+          "reduce traffic"
+        ]
+      ],
+      "forbidden_keywords": [
+        "increase database pool"
+      ]
+    },
+    "numeric_facts": [
+      {
+        "id": "numeric-provider-latency",
+        "source_id": "metric-rca-003",
+        "name": "provider_latency_p95",
+        "value": 8200,
+        "unit": "ms",
+        "tolerance": 0
+      }
+    ],
+    "temporal_facts": [
+      {
+        "id": "deployment-before-provider-error",
+        "left_source_id": "deployment-rca-003",
+        "right_source_id": "log-rca-003",
+        "relation": "before",
+        "max_gap_seconds": 7200
+      }
+    ],
+    "causal_language": {
+      "deployment_causality": "forbidden",
+      "forbidden_phrases": [
+        "deployment caused the outage",
+        "new release caused the provider failure"
+      ]
+    },
+    "required_missing_information": [
+      "provider status confirmation",
+      "whether failures occur across all provider regions"
+    ],
+    "forbidden_claims": [
+      "database connection pool exhaustion",
+      "deployment caused the external provider failure"
+    ]
+  },
+  "notes": "The deployment is temporally nearby but the direct evidence points to an external provider failure."
+}

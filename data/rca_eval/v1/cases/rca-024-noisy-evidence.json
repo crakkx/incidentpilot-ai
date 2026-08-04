@@ -1,0 +1,202 @@
+{
+  "id": "rca-024",
+  "title": "Relevant DB errors buried in noisy warning logs",
+  "scenario_type": "noisy_evidence",
+  "difficulty": "hard",
+  "tags": [
+    "noisy-evidence",
+    "signal-to-noise",
+    "database",
+    "log-noise"
+  ],
+  "incident": {
+    "id": "incident-rca-024",
+    "title": "User-facing query failures on profile-service",
+    "description": "The profile-service began failing user queries. The evidence includes two relevant database error logs and four noisy warnings about unrelated cache TTL expiry and deprecated API calls.",
+    "service_name": "profile-service",
+    "severity": "high",
+    "started_at": "2026-07-26T18:00:00Z"
+  },
+  "evidence": [
+    {
+      "id": "log-rca-024-noise-1",
+      "source_type": "log",
+      "timestamp": "2026-07-26T17:58:00Z",
+      "content": "DEPRECATED: API v1 endpoint /profile/v1/summary called; upgrade to v2",
+      "data": {
+        "level": "WARNING",
+        "event": "deprecated_api_call",
+        "endpoint": "/profile/v1/summary"
+      }
+    },
+    {
+      "id": "log-rca-024-noise-2",
+      "source_type": "log",
+      "timestamp": "2026-07-26T17:59:00Z",
+      "content": "Cache TTL expired for avatar-cache entry user_8821; will refresh on next request",
+      "data": {
+        "level": "INFO",
+        "event": "cache_ttl_expired",
+        "cache": "avatar-cache"
+      }
+    },
+    {
+      "id": "log-rca-024-a",
+      "source_type": "log",
+      "timestamp": "2026-07-26T18:00:30Z",
+      "content": "Query failed: relation 'user_profiles' does not exist",
+      "data": {
+        "level": "ERROR",
+        "error": "relation_not_found",
+        "table": "user_profiles"
+      }
+    },
+    {
+      "id": "log-rca-024-noise-3",
+      "source_type": "log",
+      "timestamp": "2026-07-26T18:01:00Z",
+      "content": "Rate limit warning: 80% of request quota consumed for tenant beta-corp",
+      "data": {
+        "level": "WARNING",
+        "event": "rate_limit_warning",
+        "tenant": "beta-corp",
+        "consumption_percent": 80
+      }
+    },
+    {
+      "id": "log-rca-024-b",
+      "source_type": "log",
+      "timestamp": "2026-07-26T18:01:30Z",
+      "content": "Migration rollback detected: user_profiles table dropped by failed migration 0042_add_profile_indexes",
+      "data": {
+        "level": "ERROR",
+        "event": "migration_rollback",
+        "migration": "0042_add_profile_indexes",
+        "dropped_table": "user_profiles"
+      }
+    },
+    {
+      "id": "log-rca-024-noise-4",
+      "source_type": "log",
+      "timestamp": "2026-07-26T18:02:00Z",
+      "content": "Slow health check response: /health responded in 210ms (threshold 200ms)",
+      "data": {
+        "level": "WARNING",
+        "event": "slow_health_check",
+        "latency_ms": 210,
+        "threshold_ms": 200
+      }
+    },
+    {
+      "id": "runbook-rca-024",
+      "source_type": "runbook",
+      "timestamp": null,
+      "content": "Table-not-found errors after a migration indicate a failed or rolled-back migration. Identify the migration and re-run it after fixing the issue. Ignore unrelated warnings such as deprecated API calls, cache TTL expiry, and minor health check latency.",
+      "data": {
+        "document_title": "Migration Failure and Table Missing Runbook"
+      }
+    }
+  ],
+  "expectations": {
+    "observations": [
+      {
+        "id": "observation-table-missing",
+        "concept": "The user_profiles table does not exist, causing all profile queries to fail.",
+        "acceptable_source_ids": [
+          "log-rca-024-a"
+        ],
+        "keywords_any": [
+          "relation 'user_profiles' does not exist",
+          "user_profiles",
+          "table not found"
+        ],
+        "required": true
+      },
+      {
+        "id": "observation-migration-rollback",
+        "concept": "Migration 0042_add_profile_indexes rolled back and dropped the user_profiles table.",
+        "acceptable_source_ids": [
+          "log-rca-024-b"
+        ],
+        "keywords_any": [
+          "migration rollback",
+          "0042",
+          "user_profiles",
+          "dropped"
+        ],
+        "required": true
+      }
+    ],
+    "root_cause": {
+      "immediate_mechanism_keywords_any": [
+        "migration rollback",
+        "table dropped",
+        "failed migration",
+        "user_profiles table missing"
+      ],
+      "suspected_trigger_keywords_any": [
+        "migration 0042",
+        "failed migration",
+        "rollback"
+      ],
+      "causal_strength": "confirmed",
+      "acceptable_confidence": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "must_distinguish_mechanism_and_trigger": true
+    },
+    "actions": {
+      "required_categories": [
+        "mitigate",
+        "investigate"
+      ],
+      "required_keyword_groups": [
+        [
+          "re-run migration",
+          "reapply migration",
+          "restore table"
+        ],
+        [
+          "fix migration script",
+          "migration error",
+          "0042"
+        ]
+      ],
+      "forbidden_keywords": [
+        "deprecated api caused",
+        "cache ttl caused",
+        "rate limit caused"
+      ]
+    },
+    "numeric_facts": [],
+    "temporal_facts": [
+      {
+        "id": "rollback-before-query-fail",
+        "left_source_id": "log-rca-024-b",
+        "right_source_id": "log-rca-024-a",
+        "relation": "overlaps",
+        "max_gap_seconds": 90
+      }
+    ],
+    "causal_language": {
+      "deployment_causality": "not_applicable",
+      "forbidden_phrases": [
+        "deprecated api call caused",
+        "cache ttl caused query failures",
+        "rate limit caused the error"
+      ]
+    },
+    "required_missing_information": [
+      "error output from the failed migration 0042",
+      "current state of migration 0042 in the schema registry"
+    ],
+    "forbidden_claims": [
+      "deprecated api caused query failures",
+      "cache TTL expiry caused database errors",
+      "rate limiting caused table not found"
+    ]
+  },
+  "notes": "Four of six evidence items are noise (deprecated API warning, cache TTL, rate limit warning, slow health check). Model must filter noise and identify the migration rollback as the root cause."
+}

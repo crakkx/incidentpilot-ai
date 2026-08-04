@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.api.deps import require_role
 from app.db.session import get_db
+from app.models import User
 from app.schemas.log import LogIngestRequest, LogIngestResponse
 from app.services.ingestion_service import ingest_logs as service_ingest_logs
 
@@ -13,5 +15,6 @@ router = APIRouter(prefix="/logs", tags=["logs"])
 def ingest_logs(
     payload: LogIngestRequest,
     db: Session = Depends(get_db),
+    _user: User = Depends(require_role("operator", "admin")),
 ):
     return service_ingest_logs(db=db, payload=payload)
